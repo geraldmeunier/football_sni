@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-28 21:18:54.861691",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "round",
+  "column_break_knmx",
+  "coefficient"
+ ],
+ "fields": [
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "round",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Round",
+   "options": "Competition Round",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_knmx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "coefficient",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Coefficient",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-28 21:20:30.944182",
+ "modified_by": "Administrator",
+ "module": "Football SNI",
+ "name": "Competition Round List",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,168 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "creation": "2026-05-28 18:22:07.854721",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "game_id",
+  "start_time",
+  "column_break_aiqk",
+  "competition",
+  "round",
+  "column_break_lxrg",
+  "open",
+  "section_break_sqdq",
+  "team_a",
+  "column_break_xssx",
+  "score_a",
+  "penalty_shootout_a",
+  "column_break_okuh",
+  "score_b",
+  "penalty_shootout_b",
+  "column_break_pbnw",
+  "team_b",
+  "section_break_yprg",
+  "factor",
+  "column_break_digg",
+  "column_break_qpxp",
+  "column_break_juzb"
+ ],
+ "fields": [
+  {
+   "fieldname": "game_id",
+   "fieldtype": "Data",
+   "label": "Game ID"
+  },
+  {
+   "fieldname": "column_break_aiqk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "competition",
+   "fieldtype": "Link",
+   "label": "Competition",
+   "options": "Competition"
+  },
+  {
+   "fieldname": "section_break_sqdq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "team_a",
+   "fieldtype": "Link",
+   "label": "Team A",
+   "options": "Country"
+  },
+  {
+   "fieldname": "column_break_xssx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "score_a",
+   "fieldtype": "Int",
+   "label": "Score A"
+  },
+  {
+   "fieldname": "column_break_okuh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "score_b",
+   "fieldtype": "Int",
+   "label": "Score B"
+  },
+  {
+   "fieldname": "column_break_pbnw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "team_b",
+   "fieldtype": "Link",
+   "label": "Team B",
+   "options": "Country"
+  },
+  {
+   "fieldname": "penalty_shootout_a",
+   "fieldtype": "Int",
+   "label": "Penalty Shootout A"
+  },
+  {
+   "fieldname": "penalty_shootout_b",
+   "fieldtype": "Int",
+   "label": "Penalty Shootout B"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time"
+  },
+  {
+   "fieldname": "round",
+   "fieldtype": "Link",
+   "label": "Round",
+   "options": "Competition Round"
+  },
+  {
+   "fieldname": "section_break_yprg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "factor",
+   "fieldtype": "Data",
+   "label": "Factor",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_digg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_qpxp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_juzb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_lxrg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "open",
+   "fieldtype": "Check",
+   "label": "Open"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-28 21:17:35.642441",
+ "modified_by": "Administrator",
+ "module": "Football SNI",
+ "name": "Competition Game",
+ "naming_rule": "By script",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
