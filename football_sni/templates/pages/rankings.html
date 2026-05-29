@@ -1,0 +1,18 @@
+{% extends "templates/web.html" %}
+
+{% set active_page = "home" %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block page_container %}
+<div class="fsni-shell">
+	{% include "templates/includes/fsni_nav.html" %}
+	<main class="fsni-main fsni-centered-page">
+		<section class="fsni-page-head">
+			<p class="fsni-kicker">{{ _("Rankings") }}</p>
+			<h1>{{ frappe.form_dict.competition or _("Competition rankings") }}</h1>
+		</section>
+	</main>
+</div>
+{% endblock %}

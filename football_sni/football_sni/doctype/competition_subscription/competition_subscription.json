@@ -1,0 +1,76 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-30 00:13:17.209049",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "competition",
+  "new_subscription",
+  "stop_subscription"
+ ],
+ "fields": [
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "competition",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Competition",
+   "options": "Competition",
+   "reqd": 1
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "default": "0",
+   "fieldname": "stop_subscription",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Stop subscription"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "default": "0",
+   "fieldname": "new_subscription",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "New subscription"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-30 00:24:53.932627",
+ "modified_by": "Administrator",
+ "module": "Football SNI",
+ "name": "Competition Subscription",
+ "naming_rule": "By script",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

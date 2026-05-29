@@ -1,0 +1,81 @@
+{% extends "templates/web.html" %}
+
+{% set active_page = "home" %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block page_container %}
+<div class="fsni-shell">
+	{% include "templates/includes/fsni_nav.html" %}
+	<main class="fsni-main">
+		<section class="fsni-page-head">
+			<p class="fsni-kicker">{{ _("Football SNI") }}</p>
+			<h1>{{ _("Home") }}</h1>
+		</section>
+
+		<section class="fsni-section" aria-labelledby="my-open-competitions">
+			<div class="fsni-section-head">
+				<h2 id="my-open-competitions">{{ _("Open competitions") }}</h2>
+				<span>{{ open_subscribed | length }}</span>
+			</div>
+			<div class="fsni-card-grid">
+				{% for competition in open_subscribed %}
+				<a class="fsni-competition-card" href="/my_competition?competition={{ competition.url_name }}">
+					{% include "templates/includes/fsni_competition_image.html" %}
+					<div class="fsni-card-copy">
+						<p>{{ _("Playing now") }}</p>
+						<h3>{{ competition.title }}</h3>
+					</div>
+				</a>
+				{% else %}
+				<p class="fsni-empty">{{ _("You are not playing an open competition yet.") }}</p>
+				{% endfor %}
+			</div>
+		</section>
+
+		<section class="fsni-section" aria-labelledby="available-competitions">
+			<div class="fsni-section-head">
+				<h2 id="available-competitions">{{ _("Join a competition") }}</h2>
+				<span>{{ open_available | length }}</span>
+			</div>
+			<div class="fsni-card-grid">
+				{% for competition in open_available %}
+				<article class="fsni-competition-card fsni-play-card" data-competition="{{ competition.name }}">
+					{% include "templates/includes/fsni_competition_image.html" %}
+					<div class="fsni-card-copy">
+						<p>{{ _("Open") }}</p>
+						<h3>{{ competition.title }}</h3>
+					</div>
+					<button class="btn btn-primary fsni-play-button" type="button" data-competition="{{ competition.name }}">
+						{{ _("Play") }}
+					</button>
+				</article>
+				{% else %}
+				<p class="fsni-empty">{{ _("No new open competition is available right now.") }}</p>
+				{% endfor %}
+			</div>
+		</section>
+
+		<section class="fsni-section" aria-labelledby="past-competitions">
+			<div class="fsni-section-head">
+				<h2 id="past-competitions">{{ _("Past competitions") }}</h2>
+				<span>{{ past | length }}</span>
+			</div>
+			<div class="fsni-card-grid">
+				{% for competition in past %}
+				<a class="fsni-competition-card" href="/rankings?competition={{ competition.url_name }}">
+					{% include "templates/includes/fsni_competition_image.html" %}
+					<div class="fsni-card-copy">
+						<p>{{ _("Final rankings") }}</p>
+						<h3>{{ competition.title }}</h3>
+					</div>
+				</a>
+				{% else %}
+				<p class="fsni-empty">{{ _("Past competitions will appear here.") }}</p>
+				{% endfor %}
+			</div>
+		</section>
+	</main>
+</div>
+{% endblock %}

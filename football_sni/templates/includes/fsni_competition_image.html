@@ -1,0 +1,7 @@
+<div class="fsni-card-media">
+	{% if competition.image %}
+	<img src="{{ competition.image }}" alt="">
+	{% else %}
+	<div class="fsni-card-fallback" aria-hidden="true">{{ competition.title[:2] }}</div>
+	{% endif %}
+</div>
