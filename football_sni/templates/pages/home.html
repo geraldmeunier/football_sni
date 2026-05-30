@@ -5,6 +5,20 @@
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
 
+{% block head_include %}
+{{ super() }}
+<style>
+.fsni-home-settings-title { color: #162033; font-size: 20px; font-weight: 800; letter-spacing: 0; margin: 0 0 14px; }
+.fsni-home-settings { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(240px, 1fr)); align-items: start; }
+.fsni-home-settings-card { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); padding: 18px; }
+.fsni-home-settings-card h3 { color: #162033; font-size: 15px; font-weight: 800; letter-spacing: 0; margin: 0 0 12px; text-transform: uppercase; }
+.fsni-home-settings-card label { color: #162033; display: block; font-size: 12px; font-weight: 800; margin-bottom: 6px; text-transform: uppercase; }
+.fsni-home-settings-status { color: #0f766e; font-size: 13px; font-weight: 800; min-height: 18px; }
+.fsni-home-settings-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; width: fit-content; }
+@media (max-width: 900px) { .fsni-home-settings { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
 {% block page_container %}
 <div class="fsni-shell">
 	{% include "templates/includes/fsni_nav.html" %}
@@ -12,6 +26,35 @@
 		<section class="fsni-page-head">
 			<p class="fsni-kicker">{{ _("Football SNI") }}</p>
 			<h1>{{ _("Home") }}</h1>
+		</section>
+
+		<section class="fsni-section" aria-labelledby="home-user-settings">
+			<h2 class="fsni-home-settings-title" id="home-user-settings">{{ _("User Settings") }}</h2>
+			<form class="fsni-home-settings" id="fsni-user-settings-form">
+				<div class="fsni-home-settings-card">
+					<h3>{{ _("Time Zone") }}</h3>
+					<label for="fsni-time-zone">{{ _("Time Zone") }}</label>
+					<select class="form-control" id="fsni-time-zone" name="time_zone">
+						{% for time_zone in time_zones %}
+						<option value="{{ time_zone }}" {% if time_zone == current_time_zone %}selected{% endif %}>{{ time_zone }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="fsni-home-settings-card">
+					<h3>{{ _("FSNI User Site") }}</h3>
+					<label for="fsni-user-site">{{ _("FSNI User Site") }}</label>
+					<select class="form-control" id="fsni-user-site" name="user_site">
+						<option value="">{{ _("Select a site") }}</option>
+						{% for user_site in user_sites %}
+						<option value="{{ user_site.name }}" {% if user_site.name == current_user_site %}selected{% endif %}>{{ user_site.name }}</option>
+						{% endfor %}
+					</select>
+					<div class="fsni-home-settings-actions">
+						<button class="btn btn-primary" type="submit">{{ _("Save") }}</button>
+						<span class="fsni-home-settings-status" id="fsni-settings-status"></span>
+					</div>
+				</div>
+			</form>
 		</section>
 
 		<section class="fsni-section" aria-labelledby="my-open-competitions">
@@ -78,4 +121,38 @@
 		</section>
 	</main>
 </div>
+{% endblock %}
+
+
+{% block script %}
+{{ super() }}
+<script>
+frappe.ready(function () {
+	var form = document.getElementById('fsni-user-settings-form');
+	var timeZone = document.getElementById('fsni-time-zone');
+	var userSite = document.getElementById('fsni-user-site');
+	var status = document.getElementById('fsni-settings-status');
+	if (!form || !timeZone || !userSite) {
+		return;
+	}
+
+	form.addEventListener('submit', function (event) {
+		event.preventDefault();
+		status.textContent = '';
+		frappe.call({
+			method: 'football_sni.website.update_user_settings',
+			args: { time_zone: timeZone.value, user_site: userSite.value },
+			freeze: true,
+			freeze_message: __('Saving...'),
+			callback: function (response) {
+				if (!response.message) {
+					return;
+				}
+				status.textContent = __('Saved');
+				frappe.show_alert({ message: __('User settings updated.'), indicator: 'green' }, 4);
+			},
+		});
+	});
+});
+</script>
 {% endblock %}

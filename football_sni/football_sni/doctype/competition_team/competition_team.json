@@ -1,29 +1,51 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
- "autoname": "field:round",
- "creation": "2026-05-28 18:08:43.758021",
+ "autoname": "field:team",
+ "creation": "2026-05-30 17:29:26.691146",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "round"
+  "team",
+  "iso",
+  "image_url",
+  "image"
  ],
  "fields": [
   {
    "allow_in_quick_entry": 1,
-   "fieldname": "round",
+   "fieldname": "team",
    "fieldtype": "Data",
-   "label": "Round",
+   "in_list_view": 1,
+   "label": "Team",
    "unique": 1
+  },
+  {
+   "fieldname": "iso",
+   "fieldtype": "Data",
+   "label": "ISO"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "image_url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Image URL"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-30 17:08:25.545218",
+ "modified": "2026-05-30 19:09:01.060422",
  "modified_by": "Administrator",
  "module": "Football SNI",
- "name": "Competition Round",
+ "name": "Competition Team",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
@@ -38,18 +60,8 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
-  },
-  {
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "All",
-   "share": 1
   }
  ],
- "quick_entry": 1,
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",

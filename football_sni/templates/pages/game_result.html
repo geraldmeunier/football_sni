@@ -1,6 +1,6 @@
 {% extends "templates/web.html" %}
 
-{% set active_page = "my_competition" %}
+{% set active_page = "my_picks" %}
 
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
@@ -10,8 +10,8 @@
 	{% include "templates/includes/fsni_nav.html" %}
 	<main class="fsni-main fsni-centered-page">
 		<section class="fsni-page-head">
-			<p class="fsni-kicker">{{ _("My Competition") }}</p>
-			<h1>{{ frappe.form_dict.competition or _("Competition") }}</h1>
+			<p class="fsni-kicker">{{ _("Game Result") }}</p>
+			<h1>{{ game or _("Result") }}</h1>
 		</section>
 	</main>
 </div>

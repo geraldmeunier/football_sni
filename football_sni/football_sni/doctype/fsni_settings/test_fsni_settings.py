@@ -13,9 +13,9 @@ IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
 
 
-class IntegrationTestFootballSNISettings(IntegrationTestCase):
+class IntegrationTestFSNISettings(IntegrationTestCase):
 	"""
-	Integration tests for FootballSNISettings.
+	Integration tests for FSNISettings.
 	Use this class for testing interactions between multiple components.
 	"""
 

@@ -7,7 +7,7 @@ from frappe.utils import validate_email_address
 
 
 def get_allowed_signup_domains():
-    settings = frappe.get_single("Football SNI Settings")
+    settings = frappe.get_single("FSNI Settings")
     return {
         row.domain.strip().lower()
         for row in settings.domains

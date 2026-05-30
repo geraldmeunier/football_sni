@@ -1,36 +1,44 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
- "creation": "2026-05-29 23:56:49.571781",
+ "creation": "2026-05-31 00:52:44.812338",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "domains"
+  "country",
+  "site"
  ],
  "fields": [
   {
-   "fieldname": "domains",
-   "fieldtype": "Table",
-   "label": "Authorized Domains",
-   "options": "FSNI Domain List"
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country"
+  },
+  {
+   "fieldname": "site",
+   "fieldtype": "Data",
+   "label": "Site"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "issingle": 1,
  "links": [],
- "modified": "2026-05-30 00:00:12.422753",
+ "modified": "2026-05-31 00:53:44.971311",
  "modified_by": "Administrator",
  "module": "Football SNI",
- "name": "Football SNI Settings",
+ "name": "FNSI User Site",
+ "naming_rule": "By script",
  "owner": "Administrator",
  "permissions": [
   {
    "create": 1,
    "delete": 1,
    "email": 1,
+   "export": 1,
    "print": 1,
    "read": 1,
+   "report": 1,
    "role": "System Manager",
    "share": 1,
    "write": 1

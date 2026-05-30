@@ -146,10 +146,10 @@ get_website_user_home_page = "football_sni.website.get_website_user_home_page"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"football_sni.tasks.all"
-# 	],
+scheduler_events = {
+	"all": [
+		"football_sni.tasks.all"
+	],
 # 	"daily": [
 # 		"football_sni.tasks.daily"
 # 	],
@@ -162,7 +162,7 @@ get_website_user_home_page = "football_sni.website.get_website_user_home_page"
 # 	"monthly": [
 # 		"football_sni.tasks.monthly"
 # 	],
-# }
+}
 
 # Testing
 # -------

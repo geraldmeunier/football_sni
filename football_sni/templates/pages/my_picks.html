@@ -1,0 +1,239 @@
+{% extends "templates/web.html" %}
+
+{% set active_page = "my_picks" %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block head_include %}
+{{ super() }}
+<style>
+.fsni-timezone-note { color: #697789; font-size: 13px; font-weight: 600; line-height: 1.45; margin: -4px 0 14px; }
+.fsni-table-wrap { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow-x: auto; }
+.fsni-picks-table { border-collapse: collapse; font-size: 14px; line-height: 1.4; min-width: 1040px; table-layout: auto; width: 100%; }
+.fsni-picks-table th { background: #e8f4f2; border-bottom: 1px solid #c7d1dc; color: #0f766e; font-size: 12px; font-weight: 800; letter-spacing: 0; padding: 12px 10px; text-align: left; text-transform: uppercase; white-space: nowrap; }
+.fsni-picks-table th.text-center { text-align: center; }
+.fsni-picks-table td { border-bottom: 1px solid #dde3ea; color: #526171; font-size: 14px; padding: 10px 10px; vertical-align: middle; }
+.fsni-picks-table tr:last-child td { border-bottom: 0; }
+.fsni-picks-table tbody tr:hover td, .fsni-picks-table tr.is-saving td { background: #f6f8fb; }
+.fsni-picks-table tr.is-saved td { background: #e8f4f2; }
+.fsni-picks-table tr.is-closed td { background: #f8fafc; color: #697789; }
+.fsni-strong, .fsni-team { color: #162033; font-weight: 800; }
+.fsni-date { color: #526171; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.fsni-round-col, .fsni-date-col { width: 118px; max-width: 118px; }
+.fsni-team-a { padding-right: 6px; text-align: right; }
+.fsni-team-b { padding-left: 6px; text-align: left; }
+.fsni-flag-cell, .fsni-versus, .fsni-pick-input-cell { text-align: center; }
+.fsni-flag-cell { padding-left: 4px; padding-right: 4px; width: 38px; }
+.fsni-flag-cell img { display: inline-block; height: 20px; max-width: 32px; vertical-align: middle; }
+.fsni-versus { color: #697789; font-weight: 900; padding-left: 2px; padding-right: 2px; width: 12px; }
+.fsni-pick-input-cell { padding-left: 4px; padding-right: 4px; width: 50px; }
+.fsni-pick-input { appearance: textfield; background: #ffffff; border: 1px solid #c7d1dc; border-radius: 8px; color: #162033; font-size: 14px; font-weight: 800; height: 32px; margin: 0 auto; max-width: 42px; padding: 4px 3px; text-align: center; }
+.fsni-pick-input:focus { border-color: #0f766e; box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.14); outline: 0; }
+.fsni-pick-input:disabled { background: #edf2f7; color: #697789; }
+.fsni-result-cell { font-weight: 700; white-space: nowrap; }
+.fsni-result-cell a { color: #0f766e; }
+</style>
+{% endblock %}
+
+{% block page_container %}
+<div class="fsni-shell">
+	{% include "templates/includes/fsni_nav.html" %}
+	<main class="fsni-main">
+		<section class="fsni-page-head">
+			<p class="fsni-kicker">{{ _("Football SNI") }}</p>
+			<h1>{{ _("My Picks") }}</h1>
+		</section>
+
+		<section class="fsni-section">
+			<div class="fsni-section-head">
+				<h2>{{ _("Picks") }}</h2>
+				<span>{{ picks | length }}</span>
+			</div>
+			<p class="fsni-timezone-note">{{ _("Dates are shown in the") }} {{ user_time_zone }} {{ _("time zone") }}.</p>
+			<datalist id="fsni-pick-values">
+				{% for value in pick_values %}
+				<option value="{{ value }}"></option>
+				{% endfor %}
+			</datalist>
+
+			{% if picks %}
+			<div class="fsni-table-wrap">
+				<table class="fsni-picks-table">
+					<thead>
+						<tr>
+							<th>{{ _("Game ID") }}</th>
+							<th class="fsni-round-col">{{ _("Round") }}</th>
+							<th class="fsni-date-col">{{ _("Date") }}</th>
+							<th colspan="7" class="text-center">{{ _("Game") }}</th>
+							<th>{{ _("Result") }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for pick in picks %}
+						<tr data-pick="{{ pick.name }}" class="{{ '' if pick.open else 'is-closed' }}">
+							<td class="fsni-strong">{{ pick.game_id or "" }}</td>
+							<td class="fsni-round-col">{{ pick.display_round or "" }}</td>
+							<td class="fsni-date fsni-date-col">{{ pick.display_date or "" }}</td>
+							<td class="fsni-team fsni-team-a">{{ pick.team_a or "" }}</td>
+							<td class="fsni-flag-cell">{% if pick.team_a_image_src %}<img src="{{ pick.team_a_image_src }}" alt="{{ pick.team_a or '' }}">{% endif %}</td>
+							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_a" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_a or '' }}" {% if not pick.open %}disabled{% endif %}></td>
+							<td class="fsni-versus">:</td>
+							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_b" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_b or '' }}" {% if not pick.open %}disabled{% endif %}></td>
+							<td class="fsni-flag-cell">{% if pick.team_b_image_src %}<img src="{{ pick.team_b_image_src }}" alt="{{ pick.team_b or '' }}">{% endif %}</td>
+							<td class="fsni-team fsni-team-b">{{ pick.team_b or "" }}</td>
+							<td class="fsni-result-cell">{% if not pick.open %}<a href="{{ pick.result_url }}">{{ _("View") }}</a>{% endif %}</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% else %}
+			<p class="fsni-empty">{{ _("No picks yet.") }}</p>
+			{% endif %}
+		</section>
+	</main>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function () {
+	if (window.fsniMyPicksBound) {
+		return;
+	}
+	window.fsniMyPicksBound = true;
+
+	function getPayload(row) {
+		var pickA = row.querySelector('[data-field="pick_a"]');
+		var pickB = row.querySelector('[data-field="pick_b"]');
+		return {
+			pick: row.dataset.pick,
+			pick_a: pickA ? pickA.value : '',
+			pick_b: pickB ? pickB.value : '',
+		};
+	}
+
+	function getSignature(row) {
+		var payload = getPayload(row);
+		return [payload.pick_a, payload.pick_b].join('|');
+	}
+
+	function rememberSavedValues(row) {
+		row.querySelectorAll('.fsni-pick-input').forEach(function (input) {
+			input.dataset.savedValue = input.value || '';
+		});
+		row.dataset.savedSignature = getSignature(row);
+	}
+
+	function restoreSavedValues(row) {
+		row.querySelectorAll('.fsni-pick-input').forEach(function (input) {
+			input.value = input.dataset.savedValue || '';
+		});
+	}
+
+	function refocusInput(input) {
+		window.setTimeout(function () {
+			input.focus();
+			input.select();
+		}, 0);
+	}
+
+	function validate(row) {
+		var isValid = true;
+		row.querySelectorAll('.fsni-pick-input').forEach(function (input) {
+			var value = input.value.trim();
+			if (!isValid || value === '') {
+				return;
+			}
+
+			if (!/^\d+$/.test(value)) {
+				frappe.show_alert({ message: __('Picks must be integers.'), indicator: 'red' }, 5);
+				restoreSavedValues(row);
+				refocusInput(input);
+				isValid = false;
+				return;
+			}
+
+			var integerValue = parseInt(value, 10);
+			if (integerValue < 0 || integerValue > 20) {
+				frappe.show_alert({ message: __('Picks must be between 0 and 20.'), indicator: 'red' }, 5);
+				restoreSavedValues(row);
+				refocusInput(input);
+				isValid = false;
+			}
+		});
+		return isValid;
+	}
+
+	function save(row) {
+		if (!row || row.classList.contains('is-closed')) {
+			return;
+		}
+
+		if (!validate(row)) {
+			return;
+		}
+
+		var signature = getSignature(row);
+		if (row.dataset.savedSignature === signature || row.dataset.savingSignature === signature) {
+			return;
+		}
+
+		row.dataset.savingSignature = signature;
+		row.classList.add('is-saving');
+
+		frappe.call({
+			method: 'football_sni.website.update_competition_pick',
+			args: getPayload(row),
+			callback: function (response) {
+				row.classList.remove('is-saving');
+				delete row.dataset.savingSignature;
+				if (!response.message) {
+					return;
+				}
+				var pickA = row.querySelector('[data-field="pick_a"]');
+				var pickB = row.querySelector('[data-field="pick_b"]');
+				if (pickA) {
+					pickA.value = response.message.pick_a || '';
+				}
+				if (pickB) {
+					pickB.value = response.message.pick_b || '';
+				}
+				rememberSavedValues(row);
+				row.classList.add('is-saved');
+				window.setTimeout(function () {
+					row.classList.remove('is-saved');
+				}, 900);
+			},
+			error: function () {
+				row.classList.remove('is-saving');
+				delete row.dataset.savingSignature;
+			},
+		});
+	}
+
+	frappe.ready(function () {
+		document.querySelectorAll('.fsni-pick-input').forEach(function (input) {
+			var row = input.closest('tr[data-pick]');
+			if (row && !row.dataset.savedSignature) {
+				rememberSavedValues(row);
+			}
+
+			input.addEventListener('change', function () {
+				save(input.closest('tr[data-pick]'));
+			});
+			input.addEventListener('blur', function () {
+				save(input.closest('tr[data-pick]'));
+			});
+			input.addEventListener('keydown', function (event) {
+				if (event.key === 'Enter' || event.key === 'Tab') {
+					save(input.closest('tr[data-pick]'));
+				}
+			});
+		});
+	});
+})();
+</script>
+{% endblock %}

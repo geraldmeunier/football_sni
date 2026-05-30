@@ -8,5 +8,19 @@
 			<span class="fsni-nav-icon">H</span>
 			<span>Home</span>
 		</a>
+		<a class="fsni-nav-link {% if active_page == 'my_competition' %}active{% endif %}" href="/my_competition">
+			<span class="fsni-nav-icon">C</span>
+			<span>My Competition</span>
+		</a>
+		<a class="fsni-nav-link {% if active_page == 'my_picks' %}active{% endif %}" href="/my_picks">
+			<span class="fsni-nav-icon">P</span>
+			<span>My Picks</span>
+		</a>
+	</div>
+	<div class="fsni-nav-footer">
+		<a class="fsni-nav-link fsni-logout-link" href="/logout">
+			<span class="fsni-nav-icon">L</span>
+			<span>Logout</span>
+		</a>
 	</div>
 </nav>

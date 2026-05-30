@@ -13,8 +13,10 @@
   "round",
   "column_break_lxrg",
   "open",
+  "score_updated",
   "section_break_sqdq",
   "team_a",
+  "info_a",
   "column_break_xssx",
   "score_a",
   "penalty_shootout_a",
@@ -23,9 +25,11 @@
   "penalty_shootout_b",
   "column_break_pbnw",
   "team_b",
+  "info_b",
   "section_break_yprg",
-  "factor",
+  "coefficient",
   "column_break_digg",
+  "factor",
   "column_break_qpxp",
   "column_break_juzb"
  ],
@@ -33,6 +37,7 @@
   {
    "fieldname": "game_id",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Game ID"
   },
   {
@@ -52,8 +57,9 @@
   {
    "fieldname": "team_a",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Team A",
-   "options": "Country"
+   "options": "Competition Team"
   },
   {
    "fieldname": "column_break_xssx",
@@ -61,7 +67,8 @@
   },
   {
    "fieldname": "score_a",
-   "fieldtype": "Int",
+   "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Score A"
   },
   {
@@ -70,7 +77,8 @@
   },
   {
    "fieldname": "score_b",
-   "fieldtype": "Int",
+   "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Score B"
   },
   {
@@ -80,17 +88,20 @@
   {
    "fieldname": "team_b",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Team B",
-   "options": "Country"
+   "options": "Competition Team"
   },
   {
    "fieldname": "penalty_shootout_a",
-   "fieldtype": "Int",
+   "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Penalty Shootout A"
   },
   {
    "fieldname": "penalty_shootout_b",
-   "fieldtype": "Int",
+   "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Penalty Shootout B"
   },
   {
@@ -111,6 +122,7 @@
   {
    "fieldname": "factor",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Factor",
    "read_only": 1
   },
@@ -131,16 +143,41 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "open",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Open"
+  },
+  {
+   "fieldname": "info_a",
+   "fieldtype": "Data",
+   "label": "Info A"
+  },
+  {
+   "fieldname": "info_b",
+   "fieldtype": "Data",
+   "label": "Info B"
+  },
+  {
+   "fieldname": "coefficient",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Coefficient",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "score_updated",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Score Updated"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-28 21:17:35.642441",
+ "modified": "2026-05-30 19:20:34.474207",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Game",
