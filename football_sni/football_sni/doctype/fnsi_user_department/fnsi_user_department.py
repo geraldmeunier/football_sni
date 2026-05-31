@@ -4,6 +4,6 @@
 from frappe.model.document import Document
 
 
-class FNSIUserSite(Document):
+class FNSIUserDepartment(Document):
 	def autoname(self):
-		self.name = f"{self.country} / {self.site}"
+		self.name = f"{self.department} - {self.user}"

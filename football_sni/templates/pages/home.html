@@ -9,12 +9,14 @@
 {{ super() }}
 <style>
 .fsni-home-settings-title { color: #162033; font-size: 20px; font-weight: 800; letter-spacing: 0; margin: 0 0 14px; }
-.fsni-home-settings { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(240px, 1fr)); align-items: start; }
-.fsni-home-settings-card { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); padding: 18px; }
-.fsni-home-settings-card h3 { color: #162033; font-size: 15px; font-weight: 800; letter-spacing: 0; margin: 0 0 12px; text-transform: uppercase; }
+.fsni-home-settings { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 280px)); align-items: start; }
+.fsni-home-settings-card { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); min-height: 156px; padding: 18px; }
 .fsni-home-settings-card label { color: #162033; display: block; font-size: 12px; font-weight: 800; margin-bottom: 6px; text-transform: uppercase; }
-.fsni-home-settings-status { color: #0f766e; font-size: 13px; font-weight: 800; min-height: 18px; }
-.fsni-home-settings-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; width: fit-content; }
+.fsni-home-settings-help { color: #697789; font-size: 13px; font-weight: 600; line-height: 1.45; margin: 10px 0 0; }
+.fsni-home-settings-status { color: #0f766e; display: block; font-size: 13px; font-weight: 800; margin-top: 10px; min-height: 18px; }
+.fsni-location-required { color: #b42318; font-size: 13px; font-weight: 700; line-height: 1.45; margin: 10px 0 0; }
+.fsni-competition-card.fsni-disabled-card { cursor: default; opacity: 0.62; transform: none; }
+.fsni-play-button:disabled { cursor: not-allowed; opacity: 0.7; }
 @media (max-width: 900px) { .fsni-home-settings { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
@@ -30,29 +32,27 @@
 
 		<section class="fsni-section" aria-labelledby="home-user-settings">
 			<h2 class="fsni-home-settings-title" id="home-user-settings">{{ _("User Settings") }}</h2>
-			<form class="fsni-home-settings" id="fsni-user-settings-form">
+			<form class="fsni-home-settings" id="fsni-user-settings-form" data-has-location="{{ 1 if has_user_location else 0 }}">
 				<div class="fsni-home-settings-card">
-					<h3>{{ _("Time Zone") }}</h3>
+					<label for="fsni-user-site">{{ _("Location") }}</label>
+					<select class="form-control" id="fsni-user-site" name="user_site">
+						<option value="">{{ _("Select a site to continue") }}</option>
+						{% for user_site in user_sites %}
+						<option value="{{ user_site.name }}" {% if user_site.name == current_user_site %}selected{% endif %}>{{ user_site.name }}</option>
+						{% endfor %}
+					</select>
+					<p class="fsni-home-settings-help">{{ _("Choose your location to unlock the competition pages and personalize your Football SNI experience.") }}</p>
+					{% if not has_user_location %}<p class="fsni-location-required">{{ _("Location must be selected before you can access the site links.") }}</p>{% endif %}
+					<span class="fsni-home-settings-status" id="fsni-settings-status"></span>
+				</div>
+				<div class="fsni-home-settings-card">
 					<label for="fsni-time-zone">{{ _("Time Zone") }}</label>
 					<select class="form-control" id="fsni-time-zone" name="time_zone">
 						{% for time_zone in time_zones %}
 						<option value="{{ time_zone }}" {% if time_zone == current_time_zone %}selected{% endif %}>{{ time_zone }}</option>
 						{% endfor %}
 					</select>
-				</div>
-				<div class="fsni-home-settings-card">
-					<h3>{{ _("FSNI User Site") }}</h3>
-					<label for="fsni-user-site">{{ _("FSNI User Site") }}</label>
-					<select class="form-control" id="fsni-user-site" name="user_site">
-						<option value="">{{ _("Select a site") }}</option>
-						{% for user_site in user_sites %}
-						<option value="{{ user_site.name }}" {% if user_site.name == current_user_site %}selected{% endif %}>{{ user_site.name }}</option>
-						{% endfor %}
-					</select>
-					<div class="fsni-home-settings-actions">
-						<button class="btn btn-primary" type="submit">{{ _("Save") }}</button>
-						<span class="fsni-home-settings-status" id="fsni-settings-status"></span>
-					</div>
+					<p class="fsni-home-settings-help">{{ _("This time zone is used to display your pick dates.") }}</p>
 				</div>
 			</form>
 		</section>
@@ -64,13 +64,13 @@
 			</div>
 			<div class="fsni-card-grid">
 				{% for competition in open_subscribed %}
-				<a class="fsni-competition-card" href="/my_competition?competition={{ competition.url_name }}">
+				{% if has_user_location %}<a class="fsni-competition-card" href="/my_competition?competition={{ competition.url_name }}">{% else %}<div class="fsni-competition-card fsni-disabled-card" aria-disabled="true">{% endif %}
 					{% include "templates/includes/fsni_competition_image.html" %}
 					<div class="fsni-card-copy">
 						<p>{{ _("Playing now") }}</p>
 						<h3>{{ competition.title }}</h3>
 					</div>
-				</a>
+				{% if has_user_location %}</a>{% else %}</div>{% endif %}
 				{% else %}
 				<p class="fsni-empty">{{ _("You are not playing an open competition yet.") }}</p>
 				{% endfor %}
@@ -90,7 +90,7 @@
 						<p>{{ _("Open") }}</p>
 						<h3>{{ competition.title }}</h3>
 					</div>
-					<button class="btn btn-primary fsni-play-button" type="button" data-competition="{{ competition.name }}">
+					<button class="btn btn-primary fsni-play-button" type="button" data-competition="{{ competition.name }}" {% if not has_user_location %}disabled{% endif %}>
 						{{ _("Play") }}
 					</button>
 				</article>
@@ -107,13 +107,13 @@
 			</div>
 			<div class="fsni-card-grid">
 				{% for competition in past %}
-				<a class="fsni-competition-card" href="/rankings?competition={{ competition.url_name }}">
+				{% if has_user_location %}<a class="fsni-competition-card" href="/rankings?competition={{ competition.url_name }}">{% else %}<div class="fsni-competition-card fsni-disabled-card" aria-disabled="true">{% endif %}
 					{% include "templates/includes/fsni_competition_image.html" %}
 					<div class="fsni-card-copy">
 						<p>{{ _("Final rankings") }}</p>
 						<h3>{{ competition.title }}</h3>
 					</div>
-				</a>
+				{% if has_user_location %}</a>{% else %}</div>{% endif %}
 				{% else %}
 				<p class="fsni-empty">{{ _("Past competitions will appear here.") }}</p>
 				{% endfor %}
@@ -136,23 +136,42 @@ frappe.ready(function () {
 		return;
 	}
 
-	form.addEventListener('submit', function (event) {
-		event.preventDefault();
-		status.textContent = '';
+	var hadLocation = form.dataset.hasLocation === '1';
+	var lastSignature = [timeZone.value, userSite.value].join('|');
+	var savingSignature = '';
+
+	function saveSettings() {
+		var signature = [timeZone.value, userSite.value].join('|');
+		if (signature === lastSignature || signature === savingSignature) {
+			return;
+		}
+
+		savingSignature = signature;
+		status.textContent = __('Saving...');
 		frappe.call({
 			method: 'football_sni.website.update_user_settings',
 			args: { time_zone: timeZone.value, user_site: userSite.value },
-			freeze: true,
-			freeze_message: __('Saving...'),
 			callback: function (response) {
+				savingSignature = '';
 				if (!response.message) {
 					return;
 				}
+				lastSignature = signature;
 				status.textContent = __('Saved');
 				frappe.show_alert({ message: __('User settings updated.'), indicator: 'green' }, 4);
+				if (hadLocation !== Boolean(response.message.user_site)) {
+					window.location.reload();
+				}
+			},
+			error: function () {
+				savingSignature = '';
+				status.textContent = '';
 			},
 		});
-	});
+	}
+
+	timeZone.addEventListener('change', saveSettings);
+	userSite.addEventListener('change', saveSettings);
 });
 </script>
 {% endblock %}

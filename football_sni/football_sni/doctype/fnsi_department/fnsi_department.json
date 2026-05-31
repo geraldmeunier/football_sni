@@ -1,34 +1,40 @@
 {
  "actions": [],
- "allow_import": 1,
  "allow_rename": 1,
- "creation": "2026-05-31 00:52:44.812338",
+ "creation": "2026-05-31 14:31:28.370605",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "country",
-  "site"
+  "competition",
+  "team",
+  "department_owner"
  ],
  "fields": [
   {
-   "fieldname": "country",
-   "fieldtype": "Data",
-   "label": "Country"
+   "fieldname": "competition",
+   "fieldtype": "Link",
+   "label": "Competition",
+   "options": "Competition"
   },
   {
-   "fieldname": "site",
+   "fieldname": "team",
    "fieldtype": "Data",
-   "label": "Site"
+   "label": "Team"
+  },
+  {
+   "fieldname": "department_owner",
+   "fieldtype": "Link",
+   "label": "Owner",
+   "options": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-31 00:53:44.971311",
+ "modified": "2026-05-31 14:32:35.366453",
  "modified_by": "Administrator",
  "module": "Football SNI",
- "name": "FNSI User Site",
- "naming_rule": "By script",
+ "name": "FNSI Department",
  "owner": "Administrator",
  "permissions": [
   {
@@ -48,5 +54,7 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "allow_import": 0,
+ "naming_rule": "By script"
 }

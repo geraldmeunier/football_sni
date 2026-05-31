@@ -21,6 +21,46 @@ def require_login(redirect_to=None):
 	raise frappe.Redirect
 
 
+def get_current_user_location(user=None):
+	user = user or frappe.session.user
+	if user == "Guest":
+		return ""
+	return frappe.db.get_value("User", user, "location") or ""
+
+
+def get_user_site_doctype():
+	if frappe.db.exists("DocType", "FNSI Site"):
+		return "FNSI Site"
+	return "FNSI User Site"
+
+
+def add_user_settings_context(context):
+	context.time_zones = get_all_timezones()
+	user_settings = frappe.db.get_value(
+		"User",
+		frappe.session.user,
+		["time_zone", "location"],
+		as_dict=True,
+	) or {}
+	context.current_time_zone = user_settings.get("time_zone") or get_system_timezone()
+	context.current_user_site = user_settings.get("location") or ""
+	context.has_user_location = bool(context.current_user_site)
+	context.user_sites = frappe.get_all(
+		get_user_site_doctype(),
+		fields=["name", "country", "site"],
+		order_by="country asc, site asc",
+	)
+
+
+def require_user_location(redirect_to="/home"):
+	require_login(redirect_to)
+	if get_current_user_location():
+		return
+
+	frappe.local.flags.redirect_location = "/home"
+	raise frappe.Redirect
+
+
 def get_competition_cards(user=None):
 	user = user or frappe.session.user
 	competitions = frappe.get_all(
@@ -72,26 +112,13 @@ def get_context(context):
 	context.full_width = 1
 	context.body_class = "fsni-site"
 	context.title = _("Home")
-	context.time_zones = get_all_timezones()
-	user_settings = frappe.db.get_value(
-		"User",
-		frappe.session.user,
-		["time_zone", "location"],
-		as_dict=True,
-	) or {}
-	context.current_time_zone = user_settings.get("time_zone") or get_system_timezone()
-	context.current_user_site = user_settings.get("location") or ""
-	context.user_sites = frappe.get_all(
-		"FNSI User Site",
-		fields=["name", "country", "site"],
-		order_by="country asc, site asc",
-	)
+	add_user_settings_context(context)
 	context.update(get_competition_cards())
 
 
 @frappe.whitelist()
 def subscribe_to_competition(competition):
-	require_login("/home")
+	require_user_location("/home")
 
 	if not frappe.db.exists("Competition", {"name": competition, "open": 1}):
 		frappe.throw(_("This competition is not open for subscription."))
@@ -127,7 +154,7 @@ def subscribe_to_competition(competition):
 
 @frappe.whitelist()
 def update_competition_pick(pick, pick_a=None, pick_b=None):
-	require_login('/my_picks')
+	require_user_location('/my_picks')
 
 	doc = frappe.get_doc('Competition Pick', pick)
 	if doc.user != frappe.session.user:
@@ -156,8 +183,8 @@ def update_user_settings(time_zone, user_site=None):
 		frappe.throw(_('Please select a valid time zone.'))
 
 	user_site = user_site or ''
-	if user_site and not frappe.db.exists('FNSI User Site', user_site):
-		frappe.throw(_('Please select a valid FSNI User Site.'))
+	if user_site and not frappe.db.exists(get_user_site_doctype(), user_site):
+		frappe.throw(_('Please select a valid FSNI Site.'))
 
 	user = frappe.get_doc('User', frappe.session.user)
 	user.time_zone = time_zone
@@ -173,7 +200,7 @@ def update_user_settings(time_zone, user_site=None):
 
 @frappe.whitelist()
 def update_user_time_zone(time_zone):
-	return update_user_settings(time_zone)
+	return update_user_settings(time_zone, get_current_user_location())
 
 
 def validate_pick_value(value, label):

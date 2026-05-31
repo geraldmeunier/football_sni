@@ -1,0 +1,322 @@
+{% extends "templates/web.html" %}
+
+{% set active_page = "my_local_team" %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block head_include %}
+{{ super() }}
+<style>
+.fsni-local-toolbar { align-items: end; display: grid; gap: 16px; grid-template-columns: minmax(220px, 360px) minmax(260px, 420px); margin-bottom: 16px; }
+.fsni-local-toolbar label { color: #162033; display: block; font-size: 12px; font-weight: 800; margin-bottom: 6px; text-transform: uppercase; }
+.fsni-local-filter { margin: 0; }
+.fsni-local-create { margin: 0; }
+.fsni-local-owner { align-items: center; display: flex; gap: 10px; min-height: 38px; }
+.fsni-local-owner-name { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; color: #162033; flex: 1; font-weight: 700; min-width: 0; overflow-wrap: anywhere; padding: 8px 10px; }
+.fsni-local-table { min-width: 680px; }
+.fsni-picks-table th.fsni-local-action, .fsni-picks-table td.fsni-local-action { text-align: center; width: 140px; }
+.fsni-local-action .btn { min-width: 86px; }
+.fsni-local-muted { color: #697789; font-weight: 600; }
+@media (max-width: 900px) { .fsni-local-toolbar { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block page_container %}
+<div class="fsni-shell">
+	{% include "templates/includes/fsni_nav.html" %}
+	<main class="fsni-main">
+		<section class="fsni-page-head">
+			<p class="fsni-kicker">{{ _("Football SNI") }}</p>
+			<h1>{{ _("My Local Team") }}</h1>
+		</section>
+
+		<section class="fsni-section">
+			<div class="fsni-local-toolbar">
+				<form class="fsni-local-filter" method="get">
+					<label for="fsni-competition-filter">{{ _("Open Competition") }}</label>
+					<select class="form-control" id="fsni-competition-filter" name="competition" {% if not open_competitions %}disabled{% endif %}>
+						{% for competition in open_competitions %}
+						<option value="{{ competition.name }}" {% if competition.name == selected_competition %}selected{% endif %}>{{ competition.title or competition.name }}</option>
+						{% endfor %}
+					</select>
+				</form>
+
+				{% if can_create_team %}
+				<form class="fsni-local-create">
+					<label for="fsni-create-team">{{ _("Create your own team") }}</label>
+					<input class="form-control" id="fsni-create-team" type="text" autocomplete="off">
+				</form>
+				{% elif owned_department %}
+				<div class="fsni-local-create">
+					<label>{{ _("Your Team") }}</label>
+					<div class="fsni-local-owner">
+						<span class="fsni-local-owner-name">{{ owned_department.team }}</span>
+						<button class="btn btn-secondary" id="fsni-delete-owned-team" type="button" data-department="{{ owned_department.name }}">{{ _("Delete") }}</button>
+					</div>
+				</div>
+				{% endif %}
+			</div>
+		</section>
+
+		{% if owned_department %}
+		<section class="fsni-section">
+			<div class="fsni-section-head">
+				<h2>{{ _("Join Requests") }}</h2>
+				<span>{{ pending_members | length }}</span>
+			</div>
+			{% if pending_members %}
+			<div class="fsni-table-wrap">
+				<table class="fsni-picks-table fsni-local-table">
+					<thead>
+						<tr>
+							<th>{{ _("First and Last Name") }}</th>
+							<th class="fsni-local-action" colspan="2">{{ _("Action") }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for member in pending_members %}
+						<tr data-membership="{{ member.name }}">
+							<td class="fsni-strong">{{ member.user_full_name }}</td>
+							<td class="fsni-local-action">
+								<button class="btn btn-primary fsni-local-member-action" type="button" data-method="football_sni.templates.pages.my_local_team.validate_member">{{ _("Validate") }}</button>
+							</td>
+							<td class="fsni-local-action">
+								<button class="btn btn-secondary fsni-local-member-action" type="button" data-method="football_sni.templates.pages.my_local_team.reject_member">{{ _("Reject") }}</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% else %}
+			<p class="fsni-empty">{{ _("No pending join request right now.") }}</p>
+			{% endif %}
+		</section>
+
+		<section class="fsni-section">
+			<div class="fsni-section-head">
+				<h2>{{ _("Members") }}</h2>
+				<span>{{ validated_members | length }}</span>
+			</div>
+			{% if validated_members %}
+			<div class="fsni-table-wrap">
+				<table class="fsni-picks-table fsni-local-table">
+					<thead>
+						<tr>
+							<th>{{ _("Name") }}</th>
+							<th class="fsni-local-action">{{ _("Action") }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for member in validated_members %}
+						<tr data-membership="{{ member.name }}" data-member-name="{{ member.user_full_name }}">
+							<td class="fsni-strong">{{ member.user_full_name }}</td>
+							<td class="fsni-local-action">
+								<button class="btn btn-secondary fsni-local-remove-member" type="button" data-method="football_sni.templates.pages.my_local_team.remove_member">{{ _("Remove") }}</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% else %}
+			<p class="fsni-empty">{{ _("No validated member yet.") }}</p>
+			{% endif %}
+		</section>
+		{% endif %}
+
+		<section class="fsni-section">
+			<div class="fsni-section-head">
+				<h2>{{ _("Teams") }}</h2>
+				<span>{{ departments | length }}</span>
+			</div>
+
+			{% if departments %}
+			<div class="fsni-table-wrap">
+				<table class="fsni-picks-table fsni-local-table">
+					<thead>
+						<tr>
+							<th>{{ _("Team") }}</th>
+							<th>{{ _("Owner") }}</th>
+							<th class="fsni-local-action">{{ _("Action") }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for department in departments %}
+						<tr data-department="{{ department.name }}">
+							<td class="fsni-strong">{{ department.team or department.name }}</td>
+							<td>{{ department.department_owner or "" }}</td>
+							<td class="fsni-local-action">
+								{% if owned_department and department.name == owned_department.name %}
+								<button class="btn btn-secondary" type="button" disabled>{{ _("Owner") }}</button>
+								{% elif not has_department and not owned_department %}
+								<button class="btn btn-primary fsni-local-team-action" type="button" data-method="football_sni.templates.pages.my_local_team.join_department">{{ _("Join") }}</button>
+								{% elif department.name in current_departments %}
+								<button class="btn btn-secondary fsni-local-team-action" type="button" data-method="football_sni.templates.pages.my_local_team.leave_department">{{ _("Leave") }}</button>
+								{% else %}
+								<span class="fsni-local-muted"></span>
+								{% endif %}
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% elif open_competitions %}
+			<p class="fsni-empty">{{ _("No team is available for this competition.") }}</p>
+			{% else %}
+			<p class="fsni-empty">{{ _("No open competition is available right now.") }}</p>
+			{% endif %}
+
+		</section>
+	</main>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function () {
+	if (window.fsniMyLocalTeamBound) {
+		return;
+	}
+	window.fsniMyLocalTeamBound = true;
+
+	function reloadOnSuccess(response, button) {
+		if (!response.message) {
+			if (button) {
+				button.disabled = false;
+			}
+			return;
+		}
+		window.location.reload();
+	}
+
+	frappe.ready(function () {
+		var filter = document.getElementById('fsni-competition-filter');
+		if (filter) {
+			filter.addEventListener('change', function () {
+				filter.form.submit();
+			});
+		}
+
+		var createTeam = document.getElementById('fsni-create-team');
+		if (createTeam && filter) {
+			createTeam.addEventListener('keydown', function (event) {
+				if (event.key !== 'Enter') {
+					return;
+				}
+				event.preventDefault();
+				var team = createTeam.value.trim();
+				if (!team || createTeam.disabled) {
+					return;
+				}
+				createTeam.disabled = true;
+				frappe.call({
+					method: 'football_sni.templates.pages.my_local_team.create_own_department',
+					args: { competition: filter.value, team: team },
+					callback: function (response) {
+						reloadOnSuccess(response);
+					},
+					error: function () {
+						createTeam.disabled = false;
+					},
+				});
+			});
+		}
+
+		var deleteOwnedTeam = document.getElementById('fsni-delete-owned-team');
+		if (deleteOwnedTeam) {
+			deleteOwnedTeam.addEventListener('click', function () {
+				if (deleteOwnedTeam.disabled) {
+					return;
+				}
+				frappe.confirm(
+					__('Deleting your team will remove the team and every related membership request/member record. This cannot be undone. Continue?'),
+					function () {
+						deleteOwnedTeam.disabled = true;
+						frappe.call({
+							method: 'football_sni.templates.pages.my_local_team.delete_owned_department',
+							args: { department: deleteOwnedTeam.dataset.department },
+							callback: function (response) {
+								reloadOnSuccess(response, deleteOwnedTeam);
+							},
+							error: function () {
+								deleteOwnedTeam.disabled = false;
+							},
+						});
+					}
+				);
+			});
+		}
+
+		document.querySelectorAll('.fsni-local-member-action').forEach(function (button) {
+			button.addEventListener('click', function () {
+				var row = button.closest('tr[data-membership]');
+				if (!row || button.disabled) {
+					return;
+				}
+				button.disabled = true;
+				frappe.call({
+					method: button.dataset.method,
+					args: { membership: row.dataset.membership },
+					callback: function (response) {
+						reloadOnSuccess(response, button);
+					},
+					error: function () {
+						button.disabled = false;
+					},
+				});
+			});
+		});
+
+		document.querySelectorAll('.fsni-local-remove-member').forEach(function (button) {
+			button.addEventListener('click', function () {
+				var row = button.closest('tr[data-membership]');
+				if (!row || button.disabled) {
+					return;
+				}
+				frappe.confirm(
+					__('This will email the member, remove them from your team, and delete their membership record. Continue?'),
+					function () {
+						button.disabled = true;
+						frappe.call({
+							method: button.dataset.method,
+							args: { membership: row.dataset.membership },
+							callback: function (response) {
+								reloadOnSuccess(response, button);
+							},
+							error: function () {
+								button.disabled = false;
+							},
+						});
+					}
+				);
+			});
+		});
+
+		document.querySelectorAll('.fsni-local-team-action').forEach(function (button) {
+			button.addEventListener('click', function () {
+				var row = button.closest('tr[data-department]');
+				if (!row || button.disabled) {
+					return;
+				}
+
+				button.disabled = true;
+				frappe.call({
+					method: button.dataset.method,
+					args: { department: row.dataset.department },
+					callback: function (response) {
+						reloadOnSuccess(response, button);
+					},
+					error: function () {
+						button.disabled = false;
+					},
+				});
+			});
+		});
+	});
+})();
+</script>
+{% endblock %}

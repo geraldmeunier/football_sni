@@ -1,11 +1,12 @@
 import frappe
 from frappe import _
 
-from football_sni.website import require_login
+from football_sni.website import add_user_settings_context, require_user_location
 
 
 def get_context(context):
-	require_login('/game_result')
+	require_user_location('/game_result')
+	add_user_settings_context(context)
 	context.no_cache = 1
 	context.show_sidebar = 0
 	context.full_width = 1

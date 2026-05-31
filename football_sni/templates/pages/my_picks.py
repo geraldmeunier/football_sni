@@ -6,11 +6,12 @@ from frappe import _
 from frappe.utils import convert_utc_to_timezone, format_datetime, get_datetime
 
 from football_sni.tasks import get_user_time_zone
-from football_sni.website import require_login
+from football_sni.website import add_user_settings_context, require_user_location
 
 
 def get_context(context):
-	require_login('/my_picks')
+	require_user_location('/my_picks')
+	add_user_settings_context(context)
 	context.no_cache = 1
 	context.show_sidebar = 0
 	context.full_width = 1
