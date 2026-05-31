@@ -150,12 +150,17 @@ scheduler_events = {
 	"all": [
 		"football_sni.tasks.all"
 	],
+	"cron": {
+		"0 12 * * *": [
+			"football_sni.tasks.send_daily_pick_reminders"
+		]
+	},
 # 	"daily": [
 # 		"football_sni.tasks.daily"
 # 	],
-# 	"hourly": [
-# 		"football_sni.tasks.hourly"
-# 	],
+	"hourly": [
+		"football_sni.tasks.close_competition_games_before_start"
+	],
 # 	"weekly": [
 # 		"football_sni.tasks.weekly"
 # 	],

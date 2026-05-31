@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-05-30 19:57:50.307064",
+ "creation": "2026-05-30 20:04:06.861386",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -11,10 +11,16 @@
   "column_break_qqxe",
   "user",
   "open",
+  "not_played",
   "section_break_fiow",
   "pick_a",
   "column_break_tcky",
-  "pick_b"
+  "pick_b",
+  "points",
+  "coefficient",
+  "factor",
+  "factor_site",
+  "factor_department"
  ],
  "fields": [
   {
@@ -31,6 +37,7 @@
   {
    "fieldname": "game",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Game",
    "options": "Competition Game"
   },
@@ -41,6 +48,7 @@
   {
    "fieldname": "user",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "User",
    "options": "User"
   },
@@ -48,6 +56,7 @@
    "default": "0",
    "fieldname": "open",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Open"
   },
   {
@@ -67,12 +76,43 @@
    "fieldname": "pick_b",
    "fieldtype": "Data",
    "label": "Pick B"
+  },
+  {
+   "default": "0",
+   "fieldname": "not_played",
+   "fieldtype": "Check",
+   "label": "Not Played"
+  },
+  {
+   "fieldname": "points",
+   "fieldtype": "Data",
+   "label": "Points"
+  },
+  {
+   "fieldname": "coefficient",
+   "fieldtype": "Data",
+   "label": "Coefficient"
+  },
+  {
+   "fieldname": "factor",
+   "fieldtype": "Data",
+   "label": "Factor"
+  },
+  {
+   "fieldname": "factor_site",
+   "fieldtype": "Data",
+   "label": "Factor Site"
+  },
+  {
+   "fieldname": "factor_department",
+   "fieldtype": "Data",
+   "label": "Factor Department"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-30 20:02:21.440509",
+ "modified": "2026-05-31 23:36:56.681144",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Pick",

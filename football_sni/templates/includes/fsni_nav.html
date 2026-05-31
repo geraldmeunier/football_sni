@@ -47,6 +47,15 @@
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-target"></use></svg></span>
 			<span>My Picks</span>
 		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+
+		{% if has_user_location %}
+		<a class="fsni-nav-link {% if active_page == 'game_result' %}active{% endif %}" href="/game_result">
+		{% else %}
+		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
+		{% endif %}
+			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-list"></use></svg></span>
+			<span>Game Results</span>
+		{% if has_user_location %}</a>{% else %}</span>{% endif %}
 	</div>
 	<div class="fsni-nav-footer">
 		<a class="fsni-nav-link fsni-logout-link" href="/logout">

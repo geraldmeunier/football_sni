@@ -14,6 +14,7 @@
   "column_break_lxrg",
   "open",
   "score_updated",
+  "do_not_show",
   "section_break_sqdq",
   "team_a",
   "info_a",
@@ -95,13 +96,11 @@
   {
    "fieldname": "penalty_shootout_a",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Penalty Shootout A"
   },
   {
    "fieldname": "penalty_shootout_b",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Penalty Shootout B"
   },
   {
@@ -172,12 +171,18 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Score Updated"
+  },
+  {
+   "default": "1",
+   "fieldname": "do_not_show",
+   "fieldtype": "Check",
+   "label": "Do not Show"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-30 19:20:34.474207",
+ "modified": "2026-06-01 00:27:28.670762",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Game",

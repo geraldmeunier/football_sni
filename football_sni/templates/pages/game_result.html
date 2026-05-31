@@ -1,18 +1,188 @@
 {% extends "templates/web.html" %}
 
-{% set active_page = "my_picks" %}
+{% set active_page = "game_result" %}
 
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
 
+{% block style %}
+{{ super() }}
+<style>
+.fsni-result-controls { display: grid; gap: 12px; margin-top: 16px; }
+.fsni-result-toolbar { max-width: 520px; }
+.fsni-result-toolbar label { color: #526171; display: block; font-size: 12px; font-weight: 800; margin: 0 0 6px; text-transform: uppercase; }
+.fsni-result-filter-row { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.fsni-segment { align-items: center; border: 1px solid #c7d1dc; border-radius: 8px; display: inline-flex; overflow: hidden; }
+.fsni-segment a, .fsni-favorites-filter { background: #ffffff; border: 0; color: #526171; display: inline-flex; font-size: 13px; font-weight: 800; line-height: 1; padding: 10px 12px; text-decoration: none; }
+.fsni-segment a + a { border-left: 1px solid #c7d1dc; }
+.fsni-segment a.is-active, .fsni-favorites-filter.is-active { background: #0f766e; color: #ffffff; }
+.fsni-favorites-filter { border: 1px solid #c7d1dc; border-radius: 8px; }
+.fsni-score-strip { align-items: center; background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; display: grid; gap: 10px; grid-template-columns: minmax(100px, 1fr) 42px auto auto auto 42px minmax(100px, 1fr); margin: 18px 0; padding: 16px; }
+.fsni-score-team { color: #162033; font-size: 18px; font-weight: 900; }
+.fsni-score-team-a { text-align: right; }
+.fsni-score-team-b { text-align: left; }
+.fsni-score-logo { height: 32px; max-width: 44px; object-fit: contain; }
+.fsni-score-value { color: #162033; font-size: 28px; font-weight: 900; line-height: 1; min-width: 24px; text-align: center; }
+.fsni-penalties { color: #697789; font-size: 13px; font-weight: 800; margin: -8px 0 16px; text-align: center; }
+.fsni-results-table { border-collapse: collapse; font-size: 14px; min-width: 860px; width: 100%; }
+.fsni-results-table th { background: #e8f4f2; border-bottom: 1px solid #c7d1dc; color: #0f766e; font-size: 12px; font-weight: 800; padding: 10px 8px; text-align: center; text-transform: uppercase; white-space: nowrap; }
+.fsni-results-table th.text-center, .fsni-results-table td.text-center { text-align: center; }
+.fsni-results-table td { border-bottom: 1px solid #dde3ea; color: #526171; padding: 10px 8px; vertical-align: middle; }
+.fsni-results-table a { color: inherit; text-decoration: none; }
+.fsni-results-table th.fsni-user-head { text-align: left; }
+.fsni-user-cell { align-items: center; display: flex; gap: 8px; }
+.fsni-star-button { align-items: center; background: transparent; border: 0; color: #9aa6b2; display: inline-flex; height: 28px; justify-content: center; padding: 0; width: 28px; }
+.fsni-star-button svg { height: 18px; width: 18px; }
+.fsni-star-button.is-favorite { color: #f5c542; }
+.fsni-star-button:disabled { opacity: .6; }
+.fsni-pick-head { text-align: center; }
+.fsni-number-cell { color: #162033; font-weight: 800; text-align: center; }
+.fsni-empty { color: #697789; margin: 16px 0 0; }
+@media (max-width: 800px) { .fsni-result-toolbar { max-width: none; } .fsni-score-strip { grid-template-columns: 1fr 32px auto auto auto 32px 1fr; padding: 12px; } .fsni-score-team { font-size: 14px; } .fsni-score-value { font-size: 22px; } }
+</style>
+{% endblock %}
+
+{% macro query_with(filter_mode=None, favorites=None, sort_by=None, sort_order=None, game=None) -%}
+?game={{ (game or selected_game or '') | urlencode }}&filter={{ (filter_mode or current_filter or 'general') | urlencode }}{% if favorites %}&favorites=1{% endif %}{% if sort_by %}&sort_by={{ sort_by | urlencode }}&sort_order={{ sort_order | urlencode }}{% endif %}
+{%- endmacro %}
+
+{% macro sort_link(label, key) -%}
+{% set next_order = 'desc' if sort_by == key and sort_order == 'asc' else 'asc' %}
+<a href="{{ query_with(current_filter, only_favorites, key, next_order, game) }}">{{ label }}{% if sort_by == key %} ({{ 'asc' if sort_order == 'asc' else 'desc' }}){% endif %}</a>
+{%- endmacro %}
+
 {% block page_container %}
+{% set selected_game = game %}
+{% set current_filter = filter_mode %}
 <div class="fsni-shell">
 	{% include "templates/includes/fsni_nav.html" %}
-	<main class="fsni-main fsni-centered-page">
+	<main class="fsni-main">
 		<section class="fsni-page-head">
-			<p class="fsni-kicker">{{ _("Game Result") }}</p>
-			<h1>{{ game or _("Result") }}</h1>
+			<p class="fsni-kicker">FOOTBALL SNI</p>
+			<h1>{{ _("Game Results") }}</h1>
+
+			<div class="fsni-result-controls">
+				<form class="fsni-result-toolbar" method="get">
+					<label for="fsni-game-select">{{ _("Competition Game") }}</label>
+					<select class="form-control" id="fsni-game-select" name="game">
+						{% if not games %}
+						<option value="">{{ _("No closed game available") }}</option>
+						{% endif %}
+						{% for option in games %}
+						<option value="{{ option.name }}" {% if option.name == game %}selected{% endif %}>#{{ option.game_id }} - {{ option.team_a }} : {{ option.team_b }}</option>
+						{% endfor %}
+					</select>
+					<input type="hidden" name="filter" value="{{ filter_mode }}">
+					{% if only_favorites %}<input type="hidden" name="favorites" value="1">{% endif %}
+				</form>
+				<div class="fsni-result-filter-row">
+					<nav class="fsni-segment" aria-label="{{ _('Result filter') }}">
+						<a class="{{ 'is-active' if filter_mode == 'general' else '' }}" href="{{ query_with('general', only_favorites, sort_by, sort_order, game) }}">{{ _("General") }}</a>
+						<a class="{{ 'is-active' if filter_mode == 'site' else '' }}" href="{{ query_with('site', only_favorites, sort_by, sort_order, game) }}">{{ current_user_site or _("Site") }}</a>
+						<a class="{{ 'is-active' if filter_mode == 'department' else '' }}" href="{{ query_with('department', only_favorites, sort_by, sort_order, game) }}">{{ current_department.team if current_department else _("Department") }}</a>
+					</nav>
+					<a class="fsni-favorites-filter {{ 'is-active' if only_favorites else '' }}" href="{{ query_with(filter_mode, not only_favorites, sort_by, sort_order, game) }}">{{ _("Favorites") }}</a>
+				</div>
+			</div>
+		</section>
+
+		{% if result_game and result_game.score_updated %}
+		<section>
+			<div class="fsni-score-strip">
+				<div class="fsni-score-team fsni-score-team-a">{{ result_game.team_a or "" }}</div>
+				<div>{% if result_game.team_a_image_src %}<img class="fsni-score-logo" src="{{ result_game.team_a_image_src }}" alt="{{ result_game.team_a or '' }}">{% endif %}</div>
+				<div class="fsni-score-value">{{ result_game.score_a if result_game.score_a not in (None, '') else '' }}</div>
+				<div class="fsni-score-value">:</div>
+				<div class="fsni-score-value">{{ result_game.score_b if result_game.score_b not in (None, '') else '' }}</div>
+				<div>{% if result_game.team_b_image_src %}<img class="fsni-score-logo" src="{{ result_game.team_b_image_src }}" alt="{{ result_game.team_b or '' }}">{% endif %}</div>
+				<div class="fsni-score-team fsni-score-team-b">{{ result_game.team_b or "" }}</div>
+			</div>
+			{% if result_game.has_penalty_shootout %}
+			<div class="fsni-penalties">Pen. {{ result_game.penalty_shootout_a }} : {{ result_game.penalty_shootout_b }} Pen.</div>
+			{% endif %}
+		</section>
+		{% endif %}
+
+		<section>
+			{% if picks %}
+			<div class="fsni-table-wrap">
+				<table class="fsni-results-table">
+					<thead>
+						<tr>
+							<th class="fsni-user-head">{{ sort_link(_("User"), "user") }}</th>
+							<th class="text-center">{{ sort_link(_("Pick"), "pick_a") }}</th>
+							<th class="text-center">:</th>
+							<th class="text-center">{{ sort_link(_("Pick"), "pick_b") }}</th>
+							<th class="text-center">{{ sort_link(_("Points"), "points") }}</th>
+							<th class="text-center">{{ sort_link(_("Coef"), "coefficient") }}</th>
+							<th class="text-center">{{ sort_link(_("Factor"), "factor") }}</th>
+							<th class="text-center">{{ sort_link(_("Tot. Points"), "total_points") }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for pick in picks %}
+						<tr data-user="{{ pick.user }}">
+							<td>
+								<div class="fsni-user-cell">
+									<button class="fsni-star-button {{ 'is-favorite' if pick.is_favorite else '' }}" type="button" data-user="{{ pick.user }}" aria-label="{{ _('Toggle favorite') }}">
+										<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.1l2.1 4.25 4.7.68-3.4 3.31.8 4.68L8 11.8l-4.2 2.22.8-4.68-3.4-3.31 4.7-.68L8 1.1z"/></svg>
+									</button>
+									<span>{{ pick.user_full_name }}</span>
+								</div>
+							</td>
+							<td class="text-center">{{ pick.pick_a or "" }}</td>
+							<td class="text-center">:</td>
+							<td class="text-center">{{ pick.pick_b or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.points or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.coefficient or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.factor or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.total_points_display or "" }}</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% else %}
+			<p class="fsni-empty">{{ _("No picks for this filter.") }}</p>
+			{% endif %}
 		</section>
 	</main>
 </div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function () {
+	var gameSelect = document.getElementById('fsni-game-select');
+	if (gameSelect) {
+		gameSelect.addEventListener('change', function () {
+			gameSelect.form.submit();
+		});
+	}
+
+	document.querySelectorAll('.fsni-star-button').forEach(function (button) {
+		button.addEventListener('click', function () {
+			button.disabled = true;
+			frappe.call({
+				method: 'football_sni.templates.pages.game_result.toggle_favorite_member',
+				args: {
+					competition: '{{ result_game.competition if result_game else "" }}',
+					member: button.dataset.user
+				},
+				callback: function (response) {
+					if (response.message && response.message.is_favorite) {
+						button.classList.add('is-favorite');
+					} else {
+						button.classList.remove('is-favorite');
+					}
+				},
+				always: function () {
+					button.disabled = false;
+				}
+			});
+		});
+	});
+}());
+</script>
 {% endblock %}

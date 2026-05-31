@@ -58,6 +58,14 @@ def add_user_settings_context(context):
 		fields=["name", "country", "site"],
 		order_by="country asc, site asc",
 	)
+	context.countries = [
+		row.name
+		for row in frappe.get_all(
+			"Country",
+			fields=["name"],
+			order_by="name asc",
+		)
+	]
 
 
 def require_user_location(redirect_to="/home"):
@@ -203,6 +211,45 @@ def update_user_settings(time_zone, user_site=None):
 	return {
 		'time_zone': user.time_zone,
 		'user_site': user.location,
+	}
+
+
+@frappe.whitelist()
+def create_user_site(country, site):
+	require_login('/home')
+
+	country = (country or '').strip()
+	site = (site or '').strip()
+	if not country:
+		frappe.throw(_('Please select a country.'))
+	if not site:
+		frappe.throw(_('Please enter a city.'))
+	if not frappe.db.exists('Country', country):
+		frappe.throw(_('Please select a valid country.'))
+
+	user_site_doctype = get_user_site_doctype()
+	user_site_name = f'{country} / {site}'
+	if not frappe.db.exists(user_site_doctype, user_site_name):
+		doc = frappe.get_doc(
+			{
+				'doctype': user_site_doctype,
+				'country': country,
+				'site': site,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+	else:
+		doc = frappe.get_doc(user_site_doctype, user_site_name)
+
+	user = frappe.get_doc('User', frappe.session.user)
+	user.location = doc.name
+	user.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		'user_site': doc.name,
+		'country': doc.country,
+		'site': doc.site,
 	}
 
 

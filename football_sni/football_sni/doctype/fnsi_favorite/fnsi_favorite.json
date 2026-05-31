@@ -1,34 +1,41 @@
 {
  "actions": [],
- "allow_import": 1,
  "allow_rename": 1,
- "creation": "2026-05-31 00:52:44.812338",
+ "creation": "2026-05-31 23:31:40.756882",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "country",
-  "site"
+  "user",
+  "competition",
+  "favorites"
  ],
  "fields": [
   {
-   "fieldname": "country",
+   "fieldname": "user",
    "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country"
+   "label": "User",
+   "options": "User"
   },
   {
-   "fieldname": "site",
-   "fieldtype": "Data",
-   "label": "Site"
+   "fieldname": "competition",
+   "fieldtype": "Link",
+   "label": "Competition",
+   "options": "Competition"
+  },
+  {
+   "fieldname": "favorites",
+   "fieldtype": "Table",
+   "label": "Favorites",
+   "options": "FNSI User List"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-31 22:37:59.739948",
+ "modified": "2026-05-31 23:33:19.147927",
  "modified_by": "Administrator",
  "module": "Football SNI",
- "name": "FNSI Site",
+ "name": "FNSI Favorite",
  "naming_rule": "By script",
  "owner": "Administrator",
  "permissions": [

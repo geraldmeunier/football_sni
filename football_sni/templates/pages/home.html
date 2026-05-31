@@ -17,6 +17,15 @@
 .fsni-location-required { color: #b42318; font-size: 13px; font-weight: 700; line-height: 1.45; margin: 10px 0 0; }
 .fsni-competition-card.fsni-disabled-card { cursor: default; opacity: 0.62; transform: none; }
 .fsni-play-button:disabled { cursor: not-allowed; opacity: 0.7; }
+.fsni-location-modal-backdrop { align-items: center; background: rgba(22, 32, 51, 0.48); display: none; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 1050; }
+.fsni-location-modal-backdrop.show { display: flex; }
+.fsni-location-modal { background: #ffffff; border-radius: 8px; box-shadow: 0 24px 60px rgba(22, 32, 51, 0.24); max-width: 420px; padding: 22px; width: min(100%, 420px); }
+.fsni-location-modal h2 { color: #162033; font-size: 20px; font-weight: 800; letter-spacing: 0; margin: 0 0 18px; }
+.fsni-location-modal label { color: #162033; display: block; font-size: 12px; font-weight: 800; margin-bottom: 6px; text-transform: uppercase; }
+.fsni-location-modal-field { margin-bottom: 14px; }
+.fsni-location-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+.fsni-location-modal-error { color: #b42318; font-size: 13px; font-weight: 700; line-height: 1.45; margin: 10px 0 0; min-height: 18px; }
+body.fsni-modal-open { overflow: hidden; }
 @media (max-width: 900px) { .fsni-home-settings { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
@@ -40,6 +49,7 @@
 						{% for user_site in user_sites %}
 						<option value="{{ user_site.name }}" {% if user_site.name == current_user_site %}selected{% endif %}>{{ user_site.name }}</option>
 						{% endfor %}
+						<option value="__new_location__">{{ _("Add a new location") }}</option>
 					</select>
 					<p class="fsni-home-settings-help">{{ _("Choose your location to unlock the competition pages and personalize your Football SNI experience.") }}</p>
 					{% if not has_user_location %}<p class="fsni-location-required">{{ _("Location must be selected before you can access the site links.") }}</p>{% endif %}
@@ -121,6 +131,29 @@
 		</section>
 	</main>
 </div>
+<div class="fsni-location-modal-backdrop" id="fsni-location-modal" aria-hidden="true">
+	<form class="fsni-location-modal" id="fsni-location-form" role="dialog" aria-modal="true" aria-labelledby="fsni-location-modal-title">
+		<h2 id="fsni-location-modal-title">{{ _("New location") }}</h2>
+		<div class="fsni-location-modal-field">
+			<label for="fsni-new-location-country">{{ _("Country") }}</label>
+			<select class="form-control" id="fsni-new-location-country" name="country" required>
+				<option value="">{{ _("Select a country") }}</option>
+				{% for country in countries %}
+				<option value="{{ country }}">{{ country }}</option>
+				{% endfor %}
+			</select>
+		</div>
+		<div class="fsni-location-modal-field">
+			<label for="fsni-new-location-site">{{ _("City") }}</label>
+			<input class="form-control" id="fsni-new-location-site" name="site" required type="text">
+		</div>
+		<p class="fsni-location-modal-error" id="fsni-location-modal-error"></p>
+		<div class="fsni-location-modal-actions">
+			<button class="btn btn-secondary" id="fsni-location-cancel" type="button">{{ _("Cancel") }}</button>
+			<button class="btn btn-primary" id="fsni-location-save" type="submit">{{ _("Save") }}</button>
+		</div>
+	</form>
+</div>
 {% endblock %}
 
 
@@ -136,11 +169,28 @@ frappe.ready(function () {
 		return;
 	}
 
+	var newLocationValue = '__new_location__';
 	var hadLocation = form.dataset.hasLocation === '1';
+	var lastUserSite = userSite.value;
 	var lastSignature = [timeZone.value, userSite.value].join('|');
 	var savingSignature = '';
 
+	function selectUserSite(userSiteName) {
+		var option = Array.prototype.find.call(userSite.options, function (currentOption) {
+			return currentOption.value === userSiteName;
+		});
+		if (!option) {
+			option = new Option(userSiteName, userSiteName);
+			userSite.insertBefore(option, userSite.querySelector('option[value="' + newLocationValue + '"]'));
+		}
+		userSite.value = userSiteName;
+	}
+
 	function saveSettings() {
+		if (userSite.value === newLocationValue) {
+			return;
+		}
+
 		var signature = [timeZone.value, userSite.value].join('|');
 		if (signature === lastSignature || signature === savingSignature) {
 			return;
@@ -157,6 +207,7 @@ frappe.ready(function () {
 					return;
 				}
 				lastSignature = signature;
+				lastUserSite = response.message.user_site || '';
 				status.textContent = __('Saved');
 				frappe.show_alert({ message: __('User settings updated.'), indicator: 'green' }, 4);
 				if (hadLocation !== Boolean(response.message.user_site)) {
@@ -170,8 +221,75 @@ frappe.ready(function () {
 		});
 	}
 
+	var locationModal = document.getElementById('fsni-location-modal');
+	var locationForm = document.getElementById('fsni-location-form');
+	var locationCountry = document.getElementById('fsni-new-location-country');
+	var locationSite = document.getElementById('fsni-new-location-site');
+	var locationSave = document.getElementById('fsni-location-save');
+	var locationCancel = document.getElementById('fsni-location-cancel');
+	var locationError = document.getElementById('fsni-location-modal-error');
+
+	function closeNewLocationDialog() {
+		locationModal.classList.remove('show');
+		locationModal.setAttribute('aria-hidden', 'true');
+		document.body.classList.remove('fsni-modal-open');
+	}
+
+	function openNewLocationDialog() {
+		userSite.value = lastUserSite;
+		locationForm.reset();
+		locationError.textContent = '';
+		locationSave.disabled = false;
+		locationModal.classList.add('show');
+		locationModal.setAttribute('aria-hidden', 'false');
+		document.body.classList.add('fsni-modal-open');
+		locationCountry.focus();
+	}
+
+	locationCancel.addEventListener('click', closeNewLocationDialog);
+	locationModal.addEventListener('click', function (event) {
+		if (event.target === locationModal) {
+			closeNewLocationDialog();
+		}
+	});
+	locationForm.addEventListener('submit', function (event) {
+		event.preventDefault();
+		if (!locationForm.reportValidity()) {
+			return;
+		}
+
+		status.textContent = __('Saving...');
+		locationError.textContent = '';
+		locationSave.disabled = true;
+		frappe.call({
+			method: 'football_sni.website.create_user_site',
+			args: { country: locationCountry.value, site: locationSite.value },
+			callback: function (response) {
+				if (!response.message) {
+					locationSave.disabled = false;
+					status.textContent = '';
+					return;
+				}
+				selectUserSite(response.message.user_site);
+				closeNewLocationDialog();
+				saveSettings();
+			},
+			error: function () {
+				locationSave.disabled = false;
+				status.textContent = '';
+				locationError.textContent = __('The location could not be saved.');
+			},
+		});
+	});
+
 	timeZone.addEventListener('change', saveSettings);
-	userSite.addEventListener('change', saveSettings);
+	userSite.addEventListener('change', function () {
+		if (userSite.value === newLocationValue) {
+			openNewLocationDialog();
+			return;
+		}
+		saveSettings();
+	});
 });
 </script>
 {% endblock %}

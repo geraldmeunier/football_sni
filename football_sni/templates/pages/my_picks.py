@@ -47,7 +47,7 @@ def get_my_picks(user_time_zone=None):
 		left join `tabCompetition Team` team_a on team_a.name = cg.team_a
 		left join `tabCompetition Team` team_b on team_b.name = cg.team_b
 		where cp.user = %(user)s
-		order by cp.open desc, cg.start_time, cg.game_id
+		order by cast(cg.game_id as unsigned), cg.game_id
 		""",
 		{'user': user},
 		as_dict=True,
