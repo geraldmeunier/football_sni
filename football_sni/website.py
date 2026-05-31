@@ -21,17 +21,25 @@ def require_login(redirect_to=None):
 	raise frappe.Redirect
 
 
-def get_current_user_location(user=None):
-	user = user or frappe.session.user
-	if user == "Guest":
-		return ""
-	return frappe.db.get_value("User", user, "location") or ""
-
-
 def get_user_site_doctype():
 	if frappe.db.exists("DocType", "FNSI Site"):
 		return "FNSI Site"
 	return "FNSI User Site"
+
+
+def is_valid_user_location(user_site):
+	return bool(user_site) and frappe.db.exists(get_user_site_doctype(), user_site)
+
+
+def get_current_user_location(user=None):
+	user = user or frappe.session.user
+	if user == "Guest":
+		return ""
+
+	user_site = frappe.db.get_value("User", user, "location") or ""
+	if is_valid_user_location(user_site):
+		return user_site
+	return ""
 
 
 def add_user_settings_context(context):
@@ -43,7 +51,7 @@ def add_user_settings_context(context):
 		as_dict=True,
 	) or {}
 	context.current_time_zone = user_settings.get("time_zone") or get_system_timezone()
-	context.current_user_site = user_settings.get("location") or ""
+	context.current_user_site = get_current_user_location()
 	context.has_user_location = bool(context.current_user_site)
 	context.user_sites = frappe.get_all(
 		get_user_site_doctype(),
