@@ -81,6 +81,12 @@
 	color: #697789;
 }
 
+.fsni-disabled-link {
+	cursor: default;
+	opacity: 0.56;
+	pointer-events: none;
+}
+
 .fsni-main {
 	padding: 32px clamp(18px, 4vw, 56px) 56px;
 }
