@@ -5,6 +5,8 @@ from frappe import _
 from frappe.core.doctype.user.user import sign_up as frappe_sign_up
 from frappe.utils import validate_email_address
 
+from football_sni.security import validate_turnstile_token
+
 
 def get_allowed_signup_domains():
     settings = frappe.get_single("FSNI Settings")
@@ -30,7 +32,9 @@ def get_name_from_email(email):
 
 
 @frappe.whitelist(allow_guest=True)
-def sign_up(email, full_name, redirect_to=None):
+def sign_up(email, full_name, redirect_to=None, cf_turnstile_response=None):
+    validate_turnstile_token(cf_turnstile_response)
+
     email = (email or "").strip().lower()
     validate_email_address(email, throw=True)
 

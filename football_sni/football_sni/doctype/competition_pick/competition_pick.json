@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-05-30 20:04:06.861386",
+ "creation": "2026-06-01 00:03:12.657580",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -16,10 +16,15 @@
   "pick_a",
   "column_break_tcky",
   "pick_b",
+  "section_break_oakk",
   "points",
+  "column_break_qrrv",
   "coefficient",
+  "section_break_ydzt",
   "factor",
+  "column_break_wmro",
   "factor_site",
+  "column_break_nsdh",
   "factor_department"
  ],
  "fields": [
@@ -107,15 +112,36 @@
    "fieldname": "factor_department",
    "fieldtype": "Data",
    "label": "Factor Department"
+  },
+  {
+   "fieldname": "section_break_oakk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_qrrv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ydzt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_wmro",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_nsdh",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-31 23:36:56.681144",
+ "modified": "2026-06-01 18:34:21.434684",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Pick",
+ "naming_rule": "By script",
  "owner": "Administrator",
  "permissions": [
   {

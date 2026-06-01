@@ -458,3 +458,46 @@
 .fsni-result-cell a {
 	color: #0f766e;
 }
+
+
+.fsni-login-message {
+	align-items: flex-start;
+	background: #fff7ed;
+	border: 1px solid #fb923c;
+	border-left: 4px solid #ea580c;
+	border-radius: 8px;
+	box-shadow: 0 8px 20px rgba(124, 45, 18, 0.08);
+	color: #7c2d12;
+	display: flex;
+	font-size: 13px;
+	font-weight: 650;
+	gap: 10px;
+	line-height: 1.45;
+	margin: 14px 0 2px;
+	padding: 12px 14px 12px 12px;
+	text-align: left;
+}
+
+.fsni-login-message::before {
+	align-items: center;
+	background: #fed7aa;
+	border-radius: 999px;
+	color: #9a3412;
+	content: "!";
+	display: inline-flex;
+	flex: 0 0 22px;
+	font-size: 15px;
+	font-weight: 800;
+	height: 22px;
+	justify-content: center;
+	line-height: 1;
+	margin-top: 1px;
+	width: 22px;
+}
+
+.fsni-turnstile {
+	display: flex;
+	justify-content: center;
+	margin: 0 0 16px;
+	min-height: 65px;
+}

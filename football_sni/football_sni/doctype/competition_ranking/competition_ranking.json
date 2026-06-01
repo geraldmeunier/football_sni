@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "hash",
+ "creation": "2026-06-01 18:28:02.613472",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "competition",
+  "game",
+  "user",
+  "date",
+  "column_break_mnuc",
+  "prior_ranking",
+  "prior_ranking_site",
+  "prior_ranking_department",
+  "column_break_mllb",
+  "ranking",
+  "ranking_site",
+  "ranking_department"
+ ],
+ "fields": [
+  {
+   "fieldname": "competition",
+   "fieldtype": "Link",
+   "label": "Competition",
+   "options": "Competition"
+  },
+  {
+   "fieldname": "game",
+   "fieldtype": "Link",
+   "label": "Game",
+   "options": "Competition Game"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_mnuc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_mllb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "prior_ranking",
+   "fieldtype": "Int",
+   "label": "Prior Ranking"
+  },
+  {
+   "fieldname": "prior_ranking_site",
+   "fieldtype": "Int",
+   "label": "Prior Ranking Site"
+  },
+  {
+   "fieldname": "prior_ranking_department",
+   "fieldtype": "Int",
+   "label": "Prior Ranking Department"
+  },
+  {
+   "fieldname": "ranking",
+   "fieldtype": "Int",
+   "label": "Ranking"
+  },
+  {
+   "fieldname": "ranking_site",
+   "fieldtype": "Int",
+   "label": "Ranking Site"
+  },
+  {
+   "fieldname": "ranking_department",
+   "fieldtype": "Int",
+   "label": "Ranking Department"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-01 18:44:00.045289",
+ "modified_by": "Administrator",
+ "module": "Football SNI",
+ "name": "Competition Ranking",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

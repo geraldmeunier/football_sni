@@ -46,6 +46,8 @@ def get_context(context):
 	context.only_favorites = frappe.form_dict.get('favorites') in ('1', 'true', 'yes')
 	context.current_user_site = get_current_user_location()
 	context.current_department = get_current_department(context.result_game.competition if context.result_game else None)
+	if context.filter_mode == FILTER_DEPARTMENT and not context.current_department:
+		context.filter_mode = FILTER_GENERAL
 	context.favorite_members = get_favorite_members(
 		context.result_game.competition if context.result_game else None,
 		frappe.session.user,
@@ -301,7 +303,7 @@ def get_query_base(context):
 
 
 @frappe.whitelist()
-def toggle_favorite_member(competition, member):
+def toggle_favorite_member(competition, member, is_favorite=None):
 	require_user_location('/game_result')
 	if not competition or not frappe.db.exists('Competition', competition):
 		frappe.throw(_('Please select a valid competition.'))
@@ -326,12 +328,15 @@ def toggle_favorite_member(competition, member):
 			existing = row
 			break
 
-	if existing:
-		favorite.remove(existing)
-		is_favorite = False
+	if is_favorite is None:
+		should_be_favorite = existing is None
 	else:
+		should_be_favorite = frappe.utils.cint(is_favorite) == 1
+
+	if should_be_favorite and not existing:
 		favorite.append('favorites', {'member': member})
-		is_favorite = True
+	elif not should_be_favorite and existing:
+		favorite.remove(existing)
 
 	if favorite.is_new():
 		favorite.insert(ignore_permissions=True)
@@ -339,4 +344,4 @@ def toggle_favorite_member(competition, member):
 		favorite.save(ignore_permissions=True)
 	frappe.db.commit()
 
-	return {'member': member, 'is_favorite': is_favorite}
+	return {'member': member, 'is_favorite': should_be_favorite}

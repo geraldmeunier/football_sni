@@ -32,6 +32,8 @@ app_license = "mit"
 web_include_css = "/assets/football_sni/css/football_sni.css"
 web_include_js = "/assets/football_sni/js/football_sni.js"
 
+before_login = "football_sni.security.validate_turnstile_for_login"
+
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "football_sni/public/scss/website"
 

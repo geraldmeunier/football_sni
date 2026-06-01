@@ -79,7 +79,9 @@
 					<nav class="fsni-segment" aria-label="{{ _('Result filter') }}">
 						<a class="{{ 'is-active' if filter_mode == 'general' else '' }}" href="{{ query_with('general', only_favorites, sort_by, sort_order, game) }}">{{ _("General") }}</a>
 						<a class="{{ 'is-active' if filter_mode == 'site' else '' }}" href="{{ query_with('site', only_favorites, sort_by, sort_order, game) }}">{{ current_user_site or _("Site") }}</a>
-						<a class="{{ 'is-active' if filter_mode == 'department' else '' }}" href="{{ query_with('department', only_favorites, sort_by, sort_order, game) }}">{{ current_department.team if current_department else _("Department") }}</a>
+						{% if current_department %}
+						<a class="{{ 'is-active' if filter_mode == 'department' else '' }}" href="{{ query_with('department', only_favorites, sort_by, sort_order, game) }}">{{ current_department.team }}</a>
+						{% endif %}
 					</nav>
 					<a class="fsni-favorites-filter {{ 'is-active' if only_favorites else '' }}" href="{{ query_with(filter_mode, not only_favorites, sort_by, sort_order, game) }}">{{ _("Favorites") }}</a>
 				</div>
@@ -154,35 +156,91 @@
 {{ super() }}
 <script>
 (function () {
-	var gameSelect = document.getElementById('fsni-game-select');
-	if (gameSelect) {
-		gameSelect.addEventListener('change', function () {
-			gameSelect.form.submit();
+	function showError(message) {
+		if (window.frappe && frappe.show_alert) {
+			frappe.show_alert({ message: message, indicator: 'red' }, 5);
+			return;
+		}
+		window.alert(message);
+	}
+
+	function toggleFavorite(button) {
+		if (button.dataset.favoritePending === '1') {
+			return;
+		}
+
+		var onlyFavorites = {{ 'true' if only_favorites else 'false' }};
+		var shouldBeFavorite = !button.classList.contains('is-favorite');
+
+		button.dataset.favoritePending = '1';
+		button.disabled = true;
+		frappe.call({
+			method: 'football_sni.templates.pages.game_result.toggle_favorite_member',
+			args: {
+				competition: '{{ result_game.competition if result_game else "" }}',
+				member: button.dataset.user,
+				is_favorite: shouldBeFavorite ? 1 : 0
+			},
+			callback: function (response) {
+				if (!response.message || typeof response.message.is_favorite === 'undefined') {
+					return;
+				}
+
+				if (response.message.is_favorite) {
+					button.classList.add('is-favorite');
+					return;
+				}
+
+				button.classList.remove('is-favorite');
+				if (onlyFavorites) {
+					window.location.reload();
+				}
+			},
+			error: function () {
+				showError('{{ _("Unable to update favorite.") }}');
+			},
+			always: function () {
+				delete button.dataset.favoritePending;
+				button.disabled = false;
+			}
 		});
 	}
 
-	document.querySelectorAll('.fsni-star-button').forEach(function (button) {
-		button.addEventListener('click', function () {
-			button.disabled = true;
-			frappe.call({
-				method: 'football_sni.templates.pages.game_result.toggle_favorite_member',
-				args: {
-					competition: '{{ result_game.competition if result_game else "" }}',
-					member: button.dataset.user
-				},
-				callback: function (response) {
-					if (response.message && response.message.is_favorite) {
-						button.classList.add('is-favorite');
-					} else {
-						button.classList.remove('is-favorite');
-					}
-				},
-				always: function () {
-					button.disabled = false;
+	function bindGameResults() {
+		var gameSelect = document.getElementById('fsni-game-select');
+		if (gameSelect) {
+			gameSelect.addEventListener('change', function () {
+				gameSelect.form.submit();
+			});
+		}
+
+		document.querySelectorAll('.fsni-star-button').forEach(function (button) {
+			if (button.dataset.favoriteBound === '1') {
+				return;
+			}
+
+			button.dataset.favoriteBound = '1';
+			button.addEventListener('click', function (event) {
+				event.preventDefault();
+				event.stopPropagation();
+
+				if (!window.frappe || !frappe.call) {
+					showError('{{ _("Favorites are not ready yet. Please reload the page.") }}');
+					return;
 				}
+
+				toggleFavorite(button);
 			});
 		});
-	});
+	}
+
+	if (window.frappe && frappe.ready) {
+		frappe.ready(bindGameResults);
+	} else if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', bindGameResults);
+	} else {
+		bindGameResults();
+	}
 }());
 </script>
 {% endblock %}

@@ -5,7 +5,10 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "domains"
+  "domains",
+  "turnstile_site_key",
+  "turnstile_secret_key",
+  "login_message"
  ],
  "fields": [
   {
@@ -13,13 +16,28 @@
    "fieldtype": "Table",
    "label": "Authorized Domains",
    "options": "FSNI Domain List"
+  },
+  {
+   "fieldname": "turnstile_site_key",
+   "fieldtype": "Password",
+   "label": "Turnstile Site Key"
+  },
+  {
+   "fieldname": "turnstile_secret_key",
+   "fieldtype": "Password",
+   "label": "Turnstile Secret Key"
+  },
+  {
+   "fieldname": "login_message",
+   "fieldtype": "HTML Editor",
+   "label": "Login Message"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-30 00:00:12.422753",
+ "modified": "2026-06-01 22:37:12.932324",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "FSNI Settings",

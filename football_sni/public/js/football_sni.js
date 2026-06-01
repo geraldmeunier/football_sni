@@ -175,3 +175,4 @@
 		bindPickInputs(document);
 	});
 })();
+
