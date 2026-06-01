@@ -163,7 +163,7 @@
 		});
 	}
 
-	frappe.ready(function () {
+	function bindFootballSniPage() {
 		document.querySelectorAll(".fsni-play-button").forEach(function (button) {
 			button.addEventListener("click", function (event) {
 				event.preventDefault();
@@ -173,7 +173,15 @@
 		});
 
 		bindPickInputs(document);
-	});
+	}
+
+	if (window.frappe && frappe.ready) {
+		frappe.ready(bindFootballSniPage);
+	} else if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', bindFootballSniPage);
+	} else {
+		bindFootballSniPage();
+	}
 })();
 
 (function () {
@@ -241,6 +249,11 @@
 		return block;
 	}
 
+	function isFormVisible(form) {
+		var section = form && form.closest('section');
+		return !!(section && window.getComputedStyle(section).display !== 'none');
+	}
+
 	function renderTurnstile() {
 		if (!context || !context.turnstile_enabled || !window.turnstile) {
 			return;
@@ -249,7 +262,7 @@
 		getLoginForms().forEach(function (form) {
 			var block = ensureSecurityBlock(form);
 			var container = block && block.querySelector('.fsni-turnstile');
-			if (!container || container.dataset.widgetId) {
+			if (!container || container.dataset.widgetId || !isFormVisible(form)) {
 				return;
 			}
 
@@ -317,7 +330,7 @@
 		}
 		injectStyle();
 		getLoginForms().forEach(ensureSecurityBlock);
-		renderTurnstile();
+		window.setTimeout(renderTurnstile, 0);
 	}
 
 	function patchLoginCall() {
@@ -368,12 +381,15 @@
 				patchLoginCall();
 				patchRoutes();
 				loadTurnstile();
+				window.addEventListener('hashchange', function () {
+					window.setTimeout(injectSecurityBlocks, 0);
+				});
 			}
 		});
 	}
 
 	function waitForFrappeLogin() {
-		if (window.frappe && window.login && window.login.call) {
+		if (window.frappe && frappe.call && window.login && window.login.call) {
 			bootstrap();
 			return;
 		}

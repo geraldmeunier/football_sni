@@ -30,7 +30,7 @@ app_license = "mit"
 
 # include js, css files in header of web template
 web_include_css = "/assets/football_sni/css/football_sni.css"
-web_include_js = "/assets/football_sni/js/football_sni.js"
+web_include_js = "/assets/football_sni/js/football_sni.js?v=20260601_login_security2"
 
 before_login = "football_sni.security.validate_turnstile_for_login"
 
@@ -54,6 +54,11 @@ before_login = "football_sni.security.validate_turnstile_for_login"
 # ------------------
 # include app icons in desk
 # app_include_icons = "football_sni/public/icons.svg"
+
+
+website_route_rules = [
+	{"from_route": "/login", "to_route": "fsni_login"},
+]
 
 # Home Pages
 # ----------

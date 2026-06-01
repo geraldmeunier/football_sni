@@ -10,6 +10,7 @@
   "open",
   "column_break_byff",
   "image",
+  "time_zone",
   "section_break_indp",
   "round_list"
  ],
@@ -44,13 +45,18 @@
    "fieldtype": "Table",
    "label": "Round List",
    "options": "Competition Round List"
+  },
+  {
+   "fieldname": "time_zone",
+   "fieldtype": "Data",
+   "label": "Time Zone"
   }
  ],
  "grid_page_length": 50,
  "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-28 21:21:11.506593",
+ "modified": "2026-06-01 23:44:44.654900",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition",
