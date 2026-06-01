@@ -188,7 +188,8 @@ scheduler_events = {
 # ------------------------------
 #
 override_whitelisted_methods = {
-	"frappe.core.doctype.user.user.sign_up": "football_sni.signup.sign_up"
+	"frappe.core.doctype.user.user.sign_up": "football_sni.signup.sign_up",
+	"frappe.www.login.send_login_link": "football_sni.login.send_login_link",
 }
 #
 # each overriding function accepts a `data` argument;

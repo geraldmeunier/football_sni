@@ -176,3 +176,214 @@
 	});
 })();
 
+(function () {
+	if (window.location.pathname !== '/login') {
+		return;
+	}
+
+	var context = null;
+	var loadingTurnstile = false;
+	var STYLE_ID = 'fsni-login-security-style';
+
+	function injectStyle() {
+		if (document.getElementById(STYLE_ID)) {
+			return;
+		}
+
+		var style = document.createElement('style');
+		style.id = STYLE_ID;
+		style.textContent = '' +
+			'.fsni-login-message {' +
+			'align-items:flex-start;background:#fff7ed;border:1px solid #fb923c;border-left:4px solid #ea580c;' +
+			'border-radius:8px;box-shadow:0 8px 20px rgba(124,45,18,.08);color:#7c2d12;display:flex;' +
+			'font-size:13px;font-weight:650;gap:10px;line-height:1.45;margin:14px 0 2px;padding:12px 14px 12px 12px;text-align:left;' +
+			'}' +
+			'.fsni-login-message:before {' +
+			'align-items:center;background:#fed7aa;border-radius:999px;color:#9a3412;content:"!";display:inline-flex;' +
+			'flex:0 0 22px;font-size:15px;font-weight:800;height:22px;justify-content:center;line-height:1;margin-top:1px;width:22px;' +
+			'}' +
+			'.fsni-turnstile {display:flex;justify-content:center;margin:14px 0 16px;min-height:65px;}';
+		document.head.appendChild(style);
+	}
+
+	function getLoginForms() {
+		return Array.prototype.slice.call(
+			document.querySelectorAll('.form-login, .form-signup, .form-login-with-email-link')
+		);
+	}
+
+	function ensureSecurityBlock(form) {
+		var actions = form.querySelector('.page-card-actions');
+		if (!actions) {
+			return null;
+		}
+
+		var block = form.querySelector('.fsni-login-security');
+		if (!block) {
+			block = document.createElement('div');
+			block.className = 'fsni-login-security';
+			actions.parentNode.insertBefore(block, actions);
+		}
+
+		if (context.login_message && !block.querySelector('.fsni-login-message')) {
+			var message = document.createElement('div');
+			message.className = 'fsni-login-message';
+			message.innerHTML = context.login_message;
+			block.appendChild(message);
+		}
+
+		if (context.turnstile_enabled && !block.querySelector('.fsni-turnstile')) {
+			var turnstileContainer = document.createElement('div');
+			turnstileContainer.className = 'fsni-turnstile';
+			block.appendChild(turnstileContainer);
+		}
+
+		return block;
+	}
+
+	function renderTurnstile() {
+		if (!context || !context.turnstile_enabled || !window.turnstile) {
+			return;
+		}
+
+		getLoginForms().forEach(function (form) {
+			var block = ensureSecurityBlock(form);
+			var container = block && block.querySelector('.fsni-turnstile');
+			if (!container || container.dataset.widgetId) {
+				return;
+			}
+
+			container.dataset.widgetId = window.turnstile.render(container, {
+				sitekey: context.turnstile_site_key,
+				theme: 'light'
+			});
+		});
+	}
+
+	function loadTurnstile() {
+		if (!context || !context.turnstile_enabled) {
+			return;
+		}
+
+		if (window.turnstile) {
+			renderTurnstile();
+			return;
+		}
+
+		if (loadingTurnstile) {
+			return;
+		}
+
+		loadingTurnstile = true;
+		var script = document.createElement('script');
+		script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+		script.async = true;
+		script.defer = true;
+		script.onload = renderTurnstile;
+		document.head.appendChild(script);
+	}
+
+	function getVisibleForm() {
+		var forms = getLoginForms();
+		for (var i = 0; i < forms.length; i++) {
+			var section = forms[i].closest('section');
+			if (section && window.getComputedStyle(section).display !== 'none') {
+				return forms[i];
+			}
+		}
+		return forms[0] || null;
+	}
+
+	function getTurnstileToken() {
+		var form = getVisibleForm();
+		var widget = form && form.querySelector('.fsni-turnstile');
+		if (!widget || !widget.dataset.widgetId || !window.turnstile) {
+			return '';
+		}
+		return window.turnstile.getResponse(widget.dataset.widgetId);
+	}
+
+	function resetVisibleTurnstile() {
+		var form = getVisibleForm();
+		var widget = form && form.querySelector('.fsni-turnstile');
+		if (widget && widget.dataset.widgetId && window.turnstile) {
+			window.turnstile.reset(widget.dataset.widgetId);
+		}
+	}
+
+	function injectSecurityBlocks() {
+		if (!context) {
+			return;
+		}
+		injectStyle();
+		getLoginForms().forEach(ensureSecurityBlock);
+		renderTurnstile();
+	}
+
+	function patchLoginCall() {
+		if (!window.login || !window.login.call || window.login._fsni_security_patched) {
+			return false;
+		}
+
+		var originalCall = window.login.call;
+		window.login.call = function (args, callback, url) {
+			if (context && context.turnstile_enabled && args && (
+				args.cmd === 'login' ||
+				args.cmd === 'frappe.core.doctype.user.user.sign_up' ||
+				args.cmd === 'frappe.www.login.send_login_link'
+			)) {
+				args.cf_turnstile_response = getTurnstileToken();
+			}
+
+			var request = originalCall.apply(this, arguments);
+			if (request && request.always) {
+				request.always(resetVisibleTurnstile);
+			}
+			return request;
+		};
+		window.login._fsni_security_patched = true;
+		return true;
+	}
+
+	function patchRoutes() {
+		if (!window.login || !window.login.route || window.login._fsni_route_patched) {
+			return false;
+		}
+		var originalRoute = window.login.route;
+		window.login.route = function () {
+			var result = originalRoute.apply(this, arguments);
+			injectSecurityBlocks();
+			return result;
+		};
+		window.login._fsni_route_patched = true;
+		return true;
+	}
+
+	function bootstrap() {
+		frappe.call({
+			method: 'football_sni.security.get_login_security_context',
+			callback: function (response) {
+				context = response.message || {};
+				injectSecurityBlocks();
+				patchLoginCall();
+				patchRoutes();
+				loadTurnstile();
+			}
+		});
+	}
+
+	function waitForFrappeLogin() {
+		if (window.frappe && window.login && window.login.call) {
+			bootstrap();
+			return;
+		}
+		window.setTimeout(waitForFrappeLogin, 50);
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', waitForFrappeLogin);
+	} else {
+		waitForFrappeLogin();
+	}
+}());
+
