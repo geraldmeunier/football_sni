@@ -17,8 +17,11 @@
   "column_break_tcky",
   "pick_b",
   "section_break_oakk",
-  "points",
+  "exact_result",
+  "good_difference",
+  "good_trend",
   "column_break_qrrv",
+  "points",
   "coefficient",
   "section_break_ydzt",
   "factor",
@@ -132,12 +135,27 @@
   {
    "fieldname": "column_break_nsdh",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "exact_result",
+   "fieldtype": "Int",
+   "label": "Exact Result"
+  },
+  {
+   "fieldname": "good_difference",
+   "fieldtype": "Int",
+   "label": "Good Difference"
+  },
+  {
+   "fieldname": "good_trend",
+   "fieldtype": "Int",
+   "label": "Good Trend"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-01 18:34:21.434684",
+ "modified": "2026-06-02 00:24:59.260353",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Pick",

@@ -30,7 +30,7 @@ app_license = "mit"
 
 # include js, css files in header of web template
 web_include_css = "/assets/football_sni/css/football_sni.css"
-web_include_js = "/assets/football_sni/js/football_sni.js?v=20260601_login_security2"
+web_include_js = "/assets/football_sni/js/football_sni.js?v=20260602_no_login_inject"
 
 before_login = "football_sni.security.validate_turnstile_for_login"
 
