@@ -60,7 +60,7 @@ def get_faq_articles_by_category(selected_article=""):
 		inner join `tabHelp Category` category on category.name = article.category
 		where article.published = 1
 			and category.published = 1
-		order by category.category_name asc, article.creation asc, article.title asc
+		order by category.help_articles desc, category.category_name asc, article.level asc, article.creation asc, article.title asc
 		""",
 		as_dict=True,
 	)
