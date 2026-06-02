@@ -1,0 +1,46 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "competition",
+  "game",
+  "department",
+  "user",
+  "factor",
+  "total_points",
+  "total_points_cumulated",
+  "prior_ranking",
+  "ranking"
+ ],
+ "fields": [
+  {"fieldname": "competition", "fieldtype": "Link", "label": "Competition", "options": "Competition"},
+  {"fieldname": "game", "fieldtype": "Link", "label": "Game", "options": "Competition Game"},
+  {"fieldname": "department", "fieldtype": "Link", "label": "Department", "options": "FNSI Department"},
+  {"fieldname": "user", "fieldtype": "Link", "label": "User", "options": "User"},
+  {"fieldname": "factor", "fieldtype": "Float", "label": "Factor"},
+  {"fieldname": "total_points", "fieldtype": "Float", "label": "Total Points"},
+  {"fieldname": "total_points_cumulated", "fieldtype": "Float", "label": "Total Points Cumulated"},
+  {"fieldname": "prior_ranking", "fieldtype": "Int", "label": "Prior Ranking"},
+  {"fieldname": "ranking", "fieldtype": "Int", "label": "Ranking"}
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Football SNI",
+ "name": "Competition Department Ranking",
+ "naming_rule": "By script",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1}
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

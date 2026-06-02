@@ -8,6 +8,7 @@
   "domains",
   "turnstile_site_key",
   "turnstile_secret_key",
+  "bypass_turnstile_validation",
   "login_message"
  ],
  "fields": [
@@ -31,6 +32,13 @@
    "fieldname": "login_message",
    "fieldtype": "HTML Editor",
    "label": "Login Message"
+  },
+  {
+   "default": "1",
+   "description": "Skip Cloudflare Turnstile validation when enabled.",
+   "fieldname": "bypass_turnstile_validation",
+   "fieldtype": "Check",
+   "label": "Bypass Turnstile Validation"
   }
  ],
  "grid_page_length": 50,

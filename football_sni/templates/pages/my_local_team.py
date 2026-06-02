@@ -1,8 +1,14 @@
 import frappe
 from frappe import _
-from frappe.utils import get_email_address, validate_email_address
+from frappe.utils import get_email_address, get_url, validate_email_address
 
+from football_sni.tasks import get_website_app_name
 from football_sni.website import add_user_settings_context, require_user_location
+
+TEAM_JOIN_REQUEST_TEMPLATE = "Local Team Join Request"
+TEAM_JOIN_ACCEPTED_TEMPLATE = "Local Team Join Accepted"
+TEAM_JOIN_REJECTED_TEMPLATE = "Local Team Join Rejected"
+TEAM_MEMBER_REMOVED_TEMPLATE = "Local Team Member Removed"
 
 
 def get_context(context):
@@ -16,12 +22,12 @@ def get_context(context):
 	context.open_competitions = get_open_competitions()
 	context.selected_competition = get_selected_competition(context.open_competitions)
 	context.current_departments = get_current_departments(context.selected_competition)
+	context.global_owned_department = get_owned_department()
 	context.owned_department = get_owned_department(context.selected_competition)
 	context.has_department = bool(context.current_departments)
 	context.can_create_team = bool(
 		context.selected_competition
-		and not context.current_departments
-		and not context.owned_department
+		and not context.global_owned_department
 	)
 	context.departments = get_departments(context.selected_competition)
 	context.pending_members = get_department_members(context.owned_department, 'Asked')
@@ -71,13 +77,14 @@ def get_current_departments(competition=None, user=None):
 
 def get_owned_department(competition=None, user=None):
 	user = user or frappe.session.user
-	if not competition:
-		return None
+	filters = {'department_owner': user}
+	if competition:
+		filters['competition'] = competition
 
 	return frappe.db.get_value(
 		'FNSI Department',
-		{'competition': competition, 'department_owner': user},
-		['name', 'team', 'department_owner'],
+		filters,
+		['name', 'competition', 'team', 'department_owner'],
 		as_dict=True,
 	)
 
@@ -154,11 +161,8 @@ def create_own_department(competition, team):
 	competition = validate_open_competition(competition)
 	team = validate_team_name(team)
 
-	if get_current_departments(competition):
-		frappe.throw(_('You already belong to a local team for this competition.'))
-
-	if get_owned_department(competition):
-		frappe.throw(_('You already own a local team for this competition.'))
+	if get_owned_department():
+		frappe.throw(_('You already own a local team.'))
 
 	if frappe.db.exists('FNSI Department', {'competition': competition, 'team': team}):
 		frappe.throw(_('This team already exists for the selected competition.'))
@@ -213,11 +217,8 @@ def join_department(department):
 	require_user_location('/my_local_team')
 	department_doc = validate_open_department(department)
 
-	if get_current_departments(department_doc.competition):
-		frappe.throw(_('You already belong to a local team for this competition.'))
-
-	if get_owned_department(department_doc.competition):
-		frappe.throw(_('You already own a local team for this competition.'))
+	if frappe.db.exists('FNSI User Department', {'department': department, 'user': frappe.session.user}):
+		frappe.throw(_('You already have a request or membership for this local team.'))
 
 	doc = frappe.get_doc(
 		{
@@ -232,8 +233,11 @@ def join_department(department):
 	department_name = department_doc.team or department_doc.name
 	send_team_mail(
 		department_doc.department_owner,
-		_('{0} wants to join {1}').format(requester_name, department_name),
-		_('Good news!\n\n{0} would like to join your team {1}.\nHead over to My Local Team to validate or reject the request.').format(requester_name, department_name),
+		TEAM_JOIN_REQUEST_TEMPLATE,
+		{
+			"requester_name": requester_name,
+			"team_name": department_name,
+		},
 	)
 	frappe.db.commit()
 
@@ -286,16 +290,51 @@ def get_user_display_name(user):
 	return frappe.db.get_value('User', user, 'full_name') or user
 
 
-def send_team_mail(user, subject, message):
+def send_team_mail(user, template_name, context):
 	recipient = validate_email_address(get_email_address(user) or user)
 	if not recipient:
 		return
 
+	template = ensure_team_email_template(template_name)
+	context = frappe._dict(context or {})
+	context.update(
+		{
+			"app_name": get_website_app_name(),
+			"my_local_team_url": get_url("/my_local_team"),
+			"recipient_name": get_user_display_name(user),
+		}
+	)
+	email = template.get_formatted_email(context)
+
 	frappe.sendmail(
 		recipients=[recipient],
-		subject=subject,
-		message=message,
+		subject=email["subject"],
+		message=email["message"],
+		reference_doctype="User",
+		reference_name=user,
 	)
+
+
+def ensure_team_email_template(template_name):
+	if template_name not in TEAM_EMAIL_TEMPLATES:
+		frappe.throw(_("Unknown local team email template."))
+
+	definition = TEAM_EMAIL_TEMPLATES[template_name]
+	if frappe.db.exists("Email Template", template_name):
+		template = frappe.get_doc("Email Template", template_name)
+	else:
+		template = frappe.get_doc({"doctype": "Email Template", "__newname": template_name})
+
+	template.subject = definition["subject"]
+	template.use_html = 1
+	template.response_html = definition["html"]
+
+	if template.is_new():
+		template.insert(ignore_permissions=True)
+	else:
+		template.save(ignore_permissions=True)
+
+	return template
 
 
 @frappe.whitelist()
@@ -308,8 +347,11 @@ def validate_member(membership):
 	frappe.db.set_value('FNSI User Department', membership_doc.name, 'status', 'Validated')
 	send_team_mail(
 		membership_doc.user,
-		_('Welcome to {0}!').format(department_doc.team),
-		_('Great news! Your request has been accepted and you have joined {0}. Warm up, meet the crew, and get ready to play!').format(department_doc.team),
+		TEAM_JOIN_ACCEPTED_TEMPLATE,
+		{
+			"team_name": department_doc.team,
+			"owner_name": get_user_display_name(department_doc.department_owner),
+		},
 	)
 	frappe.db.commit()
 
@@ -327,8 +369,11 @@ def reject_member(membership):
 	frappe.db.set_value('FNSI User Department', membership_doc.name, 'status', 'Rejected')
 	send_team_mail(
 		membership_doc.user,
-		_('About your request for {0}').format(department_doc.team),
-		_('{0} has declined your request to join {1}. Maybe it was not the team you meant to pick?\nNo worries, have another look and choose the right squad!').format(owner_name, department_doc.team),
+		TEAM_JOIN_REJECTED_TEMPLATE,
+		{
+			"team_name": department_doc.team,
+			"owner_name": owner_name,
+		},
 	)
 	frappe.delete_doc('FNSI User Department', membership_doc.name, ignore_permissions=True)
 	frappe.db.commit()
@@ -345,10 +390,88 @@ def remove_member(membership):
 
 	send_team_mail(
 		membership_doc.user,
-		_('You have left {0}').format(department_doc.team),
-		_('Team update: you have been removed from {0}. Thanks for being part of the adventure, and keep an eye out for the next line-up!').format(department_doc.team),
+		TEAM_MEMBER_REMOVED_TEMPLATE,
+		{
+			"team_name": department_doc.team,
+			"owner_name": get_user_display_name(department_doc.department_owner),
+		},
 	)
 	frappe.delete_doc('FNSI User Department', membership_doc.name, ignore_permissions=True)
 	frappe.db.commit()
 
 	return {'membership': membership_doc.name}
+
+
+TEAM_EMAIL_TEMPLATES = {
+	TEAM_JOIN_REQUEST_TEMPLATE: {
+		"subject": "{{ requester_name }} wants to join {{ team_name }}",
+		"html": """
+<div style="background: #f6f8fb; color: #162033; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; padding: 24px;">
+	<div style="background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow: hidden;">
+		<div style="background: #0f766e; color: #ffffff; padding: 18px 22px;">
+			<div style="font-size: 12px; font-weight: 700; text-transform: uppercase;">{{ app_name }}</div>
+			<div style="font-size: 24px; font-weight: 800; line-height: 1.15; margin-top: 4px;">New teammate at the door</div>
+		</div>
+		<div style="padding: 22px;">
+			<p style="font-size: 16px; margin: 0 0 10px;">Hi {{ recipient_name }},</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">Good news! <strong>{{ requester_name }}</strong> would like to join your team <strong>{{ team_name }}</strong>.</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 22px;">Head over to My Local Team to validate or reject the request and keep your squad list match-ready.</p>
+			<p style="margin: 0 0 18px;"><a href="{{ my_local_team_url }}" style="background: #0f766e; border-radius: 8px; color: #ffffff; display: inline-block; font-weight: 700; padding: 10px 14px; text-decoration: none;">Review the request</a></p>
+			<p style="color: #697789; font-size: 13px; line-height: 1.55; margin: 0;">Or copy this link into your browser:<br><a href="{{ my_local_team_url }}" style="color: #0f766e;">{{ my_local_team_url }}</a></p>
+		</div>
+	</div>
+</div>
+""",
+	},
+	TEAM_JOIN_ACCEPTED_TEMPLATE: {
+		"subject": "You are in: {{ team_name }}",
+		"html": """
+<div style="background: #f6f8fb; color: #162033; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; padding: 24px;">
+	<div style="background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow: hidden;">
+		<div style="background: #0f766e; color: #ffffff; padding: 18px 22px;"><div style="font-size: 12px; font-weight: 700; text-transform: uppercase;">{{ app_name }}</div><div style="font-size: 24px; font-weight: 800; line-height: 1.15; margin-top: 4px;">Welcome to the squad</div></div>
+		<div style="padding: 22px;">
+			<p style="font-size: 16px; margin: 0 0 10px;">Hi {{ recipient_name }},</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">Great news! Your request has been accepted and you have joined <strong>{{ team_name }}</strong>.</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 22px;">Warm up, meet the crew, and get ready to play.</p>
+			<p style="margin: 0 0 18px;"><a href="{{ my_local_team_url }}" style="background: #0f766e; border-radius: 8px; color: #ffffff; display: inline-block; font-weight: 700; padding: 10px 14px; text-decoration: none;">Open My Local Team</a></p>
+			<p style="color: #697789; font-size: 13px; line-height: 1.55; margin: 0;">Link: <a href="{{ my_local_team_url }}" style="color: #0f766e;">{{ my_local_team_url }}</a></p>
+		</div>
+	</div>
+</div>
+""",
+	},
+	TEAM_JOIN_REJECTED_TEMPLATE: {
+		"subject": "Update on your request for {{ team_name }}",
+		"html": """
+<div style="background: #f6f8fb; color: #162033; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; padding: 24px;">
+	<div style="background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow: hidden;">
+		<div style="background: #334155; color: #ffffff; padding: 18px 22px;"><div style="font-size: 12px; font-weight: 700; text-transform: uppercase;">{{ app_name }}</div><div style="font-size: 24px; font-weight: 800; line-height: 1.15; margin-top: 4px;">Team request update</div></div>
+		<div style="padding: 22px;">
+			<p style="font-size: 16px; margin: 0 0 10px;">Hi {{ recipient_name }},</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">{{ owner_name }} has declined your request to join <strong>{{ team_name }}</strong>.</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 22px;">Maybe it was not the team you meant to pick. No worries, have another look and choose the right squad.</p>
+			<p style="margin: 0 0 18px;"><a href="{{ my_local_team_url }}" style="background: #0f766e; border-radius: 8px; color: #ffffff; display: inline-block; font-weight: 700; padding: 10px 14px; text-decoration: none;">Browse teams</a></p>
+			<p style="color: #697789; font-size: 13px; line-height: 1.55; margin: 0;">Link: <a href="{{ my_local_team_url }}" style="color: #0f766e;">{{ my_local_team_url }}</a></p>
+		</div>
+	</div>
+</div>
+""",
+	},
+	TEAM_MEMBER_REMOVED_TEMPLATE: {
+		"subject": "Team update: {{ team_name }}",
+		"html": """
+<div style="background: #f6f8fb; color: #162033; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; padding: 24px;">
+	<div style="background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow: hidden;">
+		<div style="background: #334155; color: #ffffff; padding: 18px 22px;"><div style="font-size: 12px; font-weight: 700; text-transform: uppercase;">{{ app_name }}</div><div style="font-size: 24px; font-weight: 800; line-height: 1.15; margin-top: 4px;">Line-up update</div></div>
+		<div style="padding: 22px;">
+			<p style="font-size: 16px; margin: 0 0 10px;">Hi {{ recipient_name }},</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">You have been removed from <strong>{{ team_name }}</strong>.</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 22px;">Thanks for being part of the adventure, and keep an eye out for the next line-up.</p>
+			<p style="margin: 0 0 18px;"><a href="{{ my_local_team_url }}" style="background: #0f766e; border-radius: 8px; color: #ffffff; display: inline-block; font-weight: 700; padding: 10px 14px; text-decoration: none;">Open My Local Team</a></p>
+			<p style="color: #697789; font-size: 13px; line-height: 1.55; margin: 0;">Link: <a href="{{ my_local_team_url }}" style="color: #0f766e;">{{ my_local_team_url }}</a></p>
+		</div>
+	</div>
+</div>
+""",
+	},
+}

@@ -27,11 +27,11 @@
   "section_break_ydzt",
   "factor",
   "total_points",
-  "total_p\u00f6ints_cumulated",
+  "total_points_cumulated",
   "column_break_wmro",
   "factor_site",
   "total_points_site",
-  "total_points_cumulated",
+  "total_points_site_cumulated",
   "column_break_nsdh",
   "factor_department",
   "total_points_department",
@@ -69,6 +69,7 @@
   },
   {
    "default": "0",
+   "description": "if open=1 the pick can be updated",
    "fieldname": "open",
    "fieldtype": "Check",
    "in_list_view": 1,
@@ -94,6 +95,7 @@
   },
   {
    "default": "0",
+   "description": "If the user did not set a meaningful score, the pick is considered as not played",
    "fieldname": "not_played",
    "fieldtype": "Check",
    "label": "Not Played"
@@ -180,14 +182,14 @@
    "label": "Total Points Department"
   },
   {
-   "fieldname": "total_p\u00f6ints_cumulated",
-   "fieldtype": "Data",
-   "label": "Total P\u00f6ints Cumulated"
-  },
-  {
    "fieldname": "total_points_cumulated",
    "fieldtype": "Data",
    "label": "Total Points Cumulated"
+  },
+  {
+   "fieldname": "total_points_site_cumulated",
+   "fieldtype": "Data",
+   "label": "Total Points Site Cumulated"
   },
   {
    "fieldname": "total_points_department_cumulated",
@@ -198,7 +200,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-02 01:15:37.263401",
+ "modified": "2026-06-02 13:27:31.830600",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Pick",

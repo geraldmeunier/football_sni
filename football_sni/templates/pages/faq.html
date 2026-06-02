@@ -1,0 +1,64 @@
+{% extends "templates/web.html" %}
+
+{% set active_page = "faq" %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block style %}
+{{ super() }}
+<style>
+.fsni-faq-layout { display: grid; gap: 18px; }
+.fsni-faq-category { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow: hidden; }
+.fsni-faq-category-head { border-bottom: 1px solid #dde3ea; padding: 18px 20px; }
+.fsni-faq-category-head h2 { color: #162033; font-size: 18px; font-weight: 900; line-height: 1.25; margin: 0; }
+.fsni-faq-category-head p { color: #697789; font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
+.fsni-faq-articles { display: grid; }
+.fsni-faq-article + .fsni-faq-article { border-top: 1px solid #edf1f5; }
+.fsni-faq-article summary { align-items: center; color: #162033; cursor: pointer; display: flex; font-size: 15px; font-weight: 850; gap: 10px; list-style: none; padding: 16px 20px; }
+.fsni-faq-article summary::-webkit-details-marker { display: none; }
+.fsni-faq-article summary::after { color: #0f766e; content: "+"; font-size: 20px; font-weight: 800; margin-left: auto; }
+.fsni-faq-article[open] summary::after { content: "-"; }
+.fsni-faq-content { color: #526171; font-size: 14px; line-height: 1.65; padding: 0 20px 18px; }
+.fsni-faq-content :first-child { margin-top: 0; }
+.fsni-faq-content :last-child { margin-bottom: 0; }
+@media (max-width: 760px) { .fsni-faq-category-head, .fsni-faq-article summary { padding-left: 16px; padding-right: 16px; } .fsni-faq-content { padding-left: 16px; padding-right: 16px; } }
+</style>
+{% endblock %}
+
+{% block page_container %}
+<div class="fsni-shell">
+	{% include "templates/includes/fsni_nav.html" %}
+	<main class="fsni-main">
+		<section class="fsni-page-head">
+			<p class="fsni-kicker">FOOTBALL SNI</p>
+			<h1>{{ _("Frequently Asked Questions") }}</h1>
+		</section>
+
+		<section class="fsni-faq-layout">
+			{% if categories %}
+			{% for category in categories %}
+			<article class="fsni-faq-category">
+				<header class="fsni-faq-category-head">
+					<h2>{{ category.category_name }}</h2>
+					{% if category.category_description %}<p>{{ category.category_description }}</p>{% endif %}
+				</header>
+				<div class="fsni-faq-articles">
+					{% for article in category.articles %}
+					<details class="fsni-faq-article">
+						<summary>
+							<span>{{ article.title }}</span>
+						</summary>
+						<div class="fsni-faq-content">{{ article.content | safe }}</div>
+					</details>
+					{% endfor %}
+				</div>
+			</article>
+			{% endfor %}
+			{% else %}
+			<p class="fsni-empty">{{ _("No FAQ article is available yet.") }}</p>
+			{% endif %}
+		</section>
+	</main>
+</div>
+{% endblock %}

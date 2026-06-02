@@ -22,6 +22,15 @@
 		{% if has_user_location %}</a>{% else %}</span>{% endif %}
 
 		{% if has_user_location %}
+		<a class="fsni-nav-link {% if active_page == 'faq' %}active{% endif %}" href="/faq">
+		{% else %}
+		<span class="fsni-nav-link {% if active_page == 'faq' %}active{% endif %} fsni-disabled-link" aria-disabled="true">
+		{% endif %}
+			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-help"></use></svg></span>
+			<span>FAQ</span>
+		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+
+		{% if has_user_location %}
 		<a class="fsni-nav-link {% if active_page == 'my_competition' %}active{% endif %}" href="/my_competition">
 		{% else %}
 		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
@@ -53,8 +62,17 @@
 		{% else %}
 		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
 		{% endif %}
-			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-list"></use></svg></span>
+			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-clipboard"></use></svg></span>
 			<span>Game Results</span>
+		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+
+		{% if has_user_location %}
+		<a class="fsni-nav-link {% if active_page == 'rankings' %}active{% endif %}" href="/rankings">
+		{% else %}
+		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
+		{% endif %}
+			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-medal"></use></svg></span>
+			<span>Rankings</span>
 		{% if has_user_location %}</a>{% else %}</span>{% endif %}
 	</div>
 	<div class="fsni-nav-footer">

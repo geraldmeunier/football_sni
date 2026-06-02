@@ -27,7 +27,7 @@
 	{% include "templates/includes/fsni_nav.html" %}
 	<main class="fsni-main">
 		<section class="fsni-page-head">
-			<p class="fsni-kicker">{{ _("Football SNI") }}</p>
+			<p class="fsni-kicker">FOOTBALL SNI</p>
 			<h1>{{ _("My Local Team") }}</h1>
 		</section>
 
@@ -150,12 +150,10 @@
 							<td class="fsni-local-action">
 								{% if owned_department and department.name == owned_department.name %}
 								<button class="btn btn-secondary" type="button" disabled>{{ _("Owner") }}</button>
-								{% elif not has_department and not owned_department %}
-								<button class="btn btn-primary fsni-local-team-action" type="button" data-method="football_sni.templates.pages.my_local_team.join_department">{{ _("Join") }}</button>
 								{% elif department.name in current_departments %}
 								<button class="btn btn-secondary fsni-local-team-action" type="button" data-method="football_sni.templates.pages.my_local_team.leave_department">{{ _("Leave") }}</button>
 								{% else %}
-								<span class="fsni-local-muted"></span>
+								<button class="btn btn-primary fsni-local-team-action" type="button" data-method="football_sni.templates.pages.my_local_team.join_department">{{ _("Join") }}</button>
 								{% endif %}
 							</td>
 						</tr>

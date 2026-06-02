@@ -35,18 +35,26 @@ def get_login_message():
 	return Markup(sanitize_html(message, always_sanitize=True))
 
 
+def should_bypass_turnstile_validation():
+	return bool(frappe.db.get_single_value("FSNI Settings", "bypass_turnstile_validation"))
+
+
 @frappe.whitelist(allow_guest=True)
 def get_login_security_context():
 	site_key = get_turnstile_site_key()
+	bypass_turnstile = should_bypass_turnstile_validation()
 
 	return {
-		"turnstile_enabled": bool(site_key and get_turnstile_secret_key()),
+		"turnstile_enabled": bool(site_key and get_turnstile_secret_key() and not bypass_turnstile),
 		"turnstile_site_key": site_key,
 		"login_message": get_login_message(),
 	}
 
 
 def validate_turnstile_token(token=None):
+	if should_bypass_turnstile_validation():
+		return
+
 	secret_key = get_turnstile_secret_key()
 	site_key = get_turnstile_site_key()
 

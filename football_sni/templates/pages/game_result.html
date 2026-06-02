@@ -8,8 +8,8 @@
 {% block style %}
 {{ super() }}
 <style>
-.fsni-result-controls { display: grid; gap: 12px; margin-top: 16px; }
-.fsni-result-toolbar { max-width: 520px; }
+.fsni-result-controls { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+.fsni-result-toolbar { flex: 0 1 320px; max-width: 360px; min-width: 240px; }
 .fsni-result-toolbar label { color: #526171; display: block; font-size: 12px; font-weight: 800; margin: 0 0 6px; text-transform: uppercase; }
 .fsni-result-filter-row { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
 .fsni-segment { align-items: center; border: 1px solid #c7d1dc; border-radius: 8px; display: inline-flex; overflow: hidden; }
@@ -17,19 +17,26 @@
 .fsni-segment a + a { border-left: 1px solid #c7d1dc; }
 .fsni-segment a.is-active, .fsni-favorites-filter.is-active { background: #0f766e; color: #ffffff; }
 .fsni-favorites-filter { border: 1px solid #c7d1dc; border-radius: 8px; }
-.fsni-score-strip { align-items: center; background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; display: grid; gap: 10px; grid-template-columns: minmax(100px, 1fr) 42px auto auto auto 42px minmax(100px, 1fr); margin: 18px 0; padding: 16px; }
-.fsni-score-team { color: #162033; font-size: 18px; font-weight: 900; }
-.fsni-score-team-a { text-align: right; }
-.fsni-score-team-b { text-align: left; }
-.fsni-score-logo { height: 32px; max-width: 44px; object-fit: contain; }
+.fsni-score-strip { align-items: center; background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; display: grid; gap: 12px; grid-template-columns: minmax(160px, 1fr) auto auto auto minmax(160px, 1fr); margin: 18px 0; padding: 16px; }
+.fsni-score-team { align-items: center; color: #162033; display: flex; font-size: 18px; font-weight: 900; gap: 10px; min-width: 0; }
+.fsni-score-team-a { justify-content: flex-end; text-align: right; }
+.fsni-score-team-b { justify-content: flex-start; text-align: left; }
+.fsni-score-name { overflow-wrap: anywhere; }
+.fsni-score-logo { flex: 0 0 auto; height: 38px; max-width: 52px; object-fit: contain; }
 .fsni-score-value { color: #162033; font-size: 28px; font-weight: 900; line-height: 1; min-width: 24px; text-align: center; }
 .fsni-penalties { color: #697789; font-size: 13px; font-weight: 800; margin: -8px 0 16px; text-align: center; }
+.fsni-list-filters { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-start; margin: 0 0 16px; }
+.fsni-list-filter { flex: 0 1 220px; max-width: 240px; min-width: 180px; }
+.fsni-list-filter label { color: #526171; display: block; font-size: 12px; font-weight: 800; margin: 0 0 6px; text-transform: uppercase; }
 .fsni-results-table { border-collapse: collapse; font-size: 14px; min-width: 860px; width: 100%; }
 .fsni-results-table th { background: #e8f4f2; border-bottom: 1px solid #c7d1dc; color: #0f766e; font-size: 12px; font-weight: 800; padding: 10px 8px; text-align: center; text-transform: uppercase; white-space: nowrap; }
 .fsni-results-table th.text-center, .fsni-results-table td.text-center { text-align: center; }
 .fsni-results-table td { border-bottom: 1px solid #dde3ea; color: #526171; padding: 10px 8px; vertical-align: middle; }
 .fsni-results-table a { color: inherit; text-decoration: none; }
+.fsni-user-link { color: #162033; font-weight: 800; }
+.fsni-user-link:hover { color: #0f766e; text-decoration: underline; }
 .fsni-results-table th.fsni-user-head { text-align: left; }
+.fsni-th-help { cursor: help; display: inline-flex; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 .fsni-user-cell { align-items: center; display: flex; gap: 8px; }
 .fsni-star-button { align-items: center; background: transparent; border: 0; color: #9aa6b2; display: inline-flex; height: 28px; justify-content: center; padding: 0; width: 28px; }
 .fsni-star-button svg { height: 18px; width: 18px; }
@@ -38,17 +45,22 @@
 .fsni-pick-head { text-align: center; }
 .fsni-number-cell { color: #162033; font-weight: 800; text-align: center; }
 .fsni-empty { color: #697789; margin: 16px 0 0; }
-@media (max-width: 800px) { .fsni-result-toolbar { max-width: none; } .fsni-score-strip { grid-template-columns: 1fr 32px auto auto auto 32px 1fr; padding: 12px; } .fsni-score-team { font-size: 14px; } .fsni-score-value { font-size: 22px; } }
+@media (max-width: 800px) { .fsni-result-toolbar, .fsni-list-filter { max-width: none; width: 100%; } .fsni-score-strip { gap: 8px; grid-template-columns: minmax(88px, 1fr) auto auto auto minmax(88px, 1fr); padding: 12px; } .fsni-score-team { flex-direction: column; font-size: 14px; gap: 6px; } .fsni-score-team-a, .fsni-score-team-b { justify-content: center; text-align: center; } .fsni-score-logo { height: 30px; max-width: 42px; } .fsni-score-value { font-size: 22px; } }
 </style>
 {% endblock %}
 
-{% macro query_with(filter_mode=None, favorites=None, sort_by=None, sort_order=None, game=None) -%}
-?game={{ (game or selected_game or '') | urlencode }}&filter={{ (filter_mode or current_filter or 'general') | urlencode }}{% if favorites %}&favorites=1{% endif %}{% if sort_by %}&sort_by={{ sort_by | urlencode }}&sort_order={{ sort_order | urlencode }}{% endif %}
+{% macro query_with(filter_mode=None, favorites=None, sort_by=None, sort_order=None, game=None, department=None) -%}
+{% set target_filter = filter_mode or current_filter or 'general' %}
+?game={{ (game or selected_game or '') | urlencode }}&filter={{ target_filter | urlencode }}{% if target_filter == 'department' and department %}&department={{ department | urlencode }}{% elif target_filter == 'department' and current_department %}&department={{ current_department.name | urlencode }}{% endif %}{% if target_filter == 'general' and list_filters %}{% if list_filters.country %}&country={{ list_filters.country | urlencode }}{% endif %}{% if list_filters.city %}&city={{ list_filters.city | urlencode }}{% endif %}{% if list_filters.department %}&list_department={{ list_filters.department | urlencode }}{% endif %}{% endif %}{% if favorites %}&favorites=1{% endif %}{% if sort_by %}&sort_by={{ sort_by | urlencode }}&sort_order={{ sort_order | urlencode }}{% endif %}
 {%- endmacro %}
 
 {% macro sort_link(label, key) -%}
 {% set next_order = 'desc' if sort_by == key and sort_order == 'asc' else 'asc' %}
 <a href="{{ query_with(current_filter, only_favorites, key, next_order, game) }}">{{ label }}{% if sort_by == key %} ({{ 'asc' if sort_order == 'asc' else 'desc' }}){% endif %}</a>
+{%- endmacro %}
+
+{% macro my_picks_link(user) -%}
+/my_picks?filter={{ (current_filter or 'general') | urlencode }}&user={{ (user or '') | urlencode }}{% if current_filter == 'department' and current_department %}&department={{ current_department.name | urlencode }}{% endif %}
 {%- endmacro %}
 
 {% block page_container %}
@@ -62,6 +74,16 @@
 			<h1>{{ _("Game Results") }}</h1>
 
 			<div class="fsni-result-controls">
+				<div class="fsni-result-filter-row">
+					<nav class="fsni-segment" aria-label="{{ _('Result filter') }}">
+						<a class="{{ 'is-active' if filter_mode == 'general' else '' }}" href="{{ query_with('general', only_favorites, sort_by, sort_order, game) }}">{{ _("General") }}</a>
+						<a class="{{ 'is-active' if filter_mode == 'site' else '' }}" href="{{ query_with('site', only_favorites, sort_by, sort_order, game) }}">{{ current_user_site or _("Site") }}</a>
+						{% for department in current_departments %}
+						<a class="{{ 'is-active' if filter_mode == 'department' and current_department and department.name == current_department.name else '' }}" href="{{ query_with('department', only_favorites, sort_by, sort_order, game, department.name) }}">{{ department.team or department.name }}</a>
+						{% endfor %}
+					</nav>
+					<a class="fsni-favorites-filter {{ 'is-active' if only_favorites else '' }}" href="{{ query_with(filter_mode, not only_favorites, sort_by, sort_order, game) }}">{{ _("Favorites") }}</a>
+				</div>
 				<form class="fsni-result-toolbar" method="get">
 					<label for="fsni-game-select">{{ _("Competition Game") }}</label>
 					<select class="form-control" id="fsni-game-select" name="game">
@@ -73,36 +95,79 @@
 						{% endfor %}
 					</select>
 					<input type="hidden" name="filter" value="{{ filter_mode }}">
+					{% if current_department and filter_mode == 'department' %}<input type="hidden" name="department" value="{{ current_department.name }}">{% endif %}
+					{% if filter_mode == 'general' and list_filters %}
+					{% if list_filters.country %}<input type="hidden" name="country" value="{{ list_filters.country }}">{% endif %}
+					{% if list_filters.city %}<input type="hidden" name="city" value="{{ list_filters.city }}">{% endif %}
+					{% if list_filters.department %}<input type="hidden" name="list_department" value="{{ list_filters.department }}">{% endif %}
+					{% endif %}
 					{% if only_favorites %}<input type="hidden" name="favorites" value="1">{% endif %}
+					{% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
+					{% if sort_order %}<input type="hidden" name="sort_order" value="{{ sort_order }}">{% endif %}
 				</form>
-				<div class="fsni-result-filter-row">
-					<nav class="fsni-segment" aria-label="{{ _('Result filter') }}">
-						<a class="{{ 'is-active' if filter_mode == 'general' else '' }}" href="{{ query_with('general', only_favorites, sort_by, sort_order, game) }}">{{ _("General") }}</a>
-						<a class="{{ 'is-active' if filter_mode == 'site' else '' }}" href="{{ query_with('site', only_favorites, sort_by, sort_order, game) }}">{{ current_user_site or _("Site") }}</a>
-						{% if current_department %}
-						<a class="{{ 'is-active' if filter_mode == 'department' else '' }}" href="{{ query_with('department', only_favorites, sort_by, sort_order, game) }}">{{ current_department.team }}</a>
-						{% endif %}
-					</nav>
-					<a class="fsni-favorites-filter {{ 'is-active' if only_favorites else '' }}" href="{{ query_with(filter_mode, not only_favorites, sort_by, sort_order, game) }}">{{ _("Favorites") }}</a>
-				</div>
 			</div>
 		</section>
 
 		{% if result_game and result_game.score_updated %}
 		<section>
 			<div class="fsni-score-strip">
-				<div class="fsni-score-team fsni-score-team-a">{{ result_game.team_a or "" }}</div>
-				<div>{% if result_game.team_a_image_src %}<img class="fsni-score-logo" src="{{ result_game.team_a_image_src }}" alt="{{ result_game.team_a or '' }}">{% endif %}</div>
+				<div class="fsni-score-team fsni-score-team-a">
+					<span class="fsni-score-name">{{ result_game.team_a or "" }}</span>
+					{% if result_game.team_a_image_src %}<img class="fsni-score-logo" src="{{ result_game.team_a_image_src }}" alt="{{ result_game.team_a or '' }}">{% endif %}
+				</div>
 				<div class="fsni-score-value">{{ result_game.score_a if result_game.score_a not in (None, '') else '' }}</div>
 				<div class="fsni-score-value">:</div>
 				<div class="fsni-score-value">{{ result_game.score_b if result_game.score_b not in (None, '') else '' }}</div>
-				<div>{% if result_game.team_b_image_src %}<img class="fsni-score-logo" src="{{ result_game.team_b_image_src }}" alt="{{ result_game.team_b or '' }}">{% endif %}</div>
-				<div class="fsni-score-team fsni-score-team-b">{{ result_game.team_b or "" }}</div>
+				<div class="fsni-score-team fsni-score-team-b">
+					{% if result_game.team_b_image_src %}<img class="fsni-score-logo" src="{{ result_game.team_b_image_src }}" alt="{{ result_game.team_b or '' }}">{% endif %}
+					<span class="fsni-score-name">{{ result_game.team_b or "" }}</span>
+				</div>
 			</div>
 			{% if result_game.has_penalty_shootout %}
 			<div class="fsni-penalties">Pen. {{ result_game.penalty_shootout_a }} : {{ result_game.penalty_shootout_b }} Pen.</div>
 			{% endif %}
 		</section>
+		{% endif %}
+
+		{% if filter_mode == 'general' and result_game %}
+		<form class="fsni-list-filters" id="fsni-list-filters" method="get">
+			<input type="hidden" name="game" value="{{ game }}">
+			<input type="hidden" name="filter" value="general">
+			{% if only_favorites %}<input type="hidden" name="favorites" value="1">{% endif %}
+			{% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
+			{% if sort_order %}<input type="hidden" name="sort_order" value="{{ sort_order }}">{% endif %}
+			<div class="fsni-list-filter">
+				<label for="fsni-user-search">{{ _("User") }}</label>
+				<input type="search" class="form-control" id="fsni-user-search" placeholder="{{ _('Search...') }}" autocomplete="off">
+			</div>
+			<div class="fsni-list-filter">
+				<label for="fsni-country-filter">{{ _("Country") }}</label>
+				<select class="form-control fsni-list-filter-select" id="fsni-country-filter" name="country">
+					<option value="">{{ _("All countries") }}</option>
+					{% for country in list_filter_options.countries %}
+					<option value="{{ country }}" {% if list_filters.country == country %}selected{% endif %}>{{ country }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="fsni-list-filter">
+				<label for="fsni-city-filter">{{ _("City") }}</label>
+				<select class="form-control fsni-list-filter-select" id="fsni-city-filter" name="city">
+					<option value="">{{ _("All cities") }}</option>
+					{% for city in list_filter_options.cities %}
+					<option value="{{ city }}" {% if list_filters.city == city %}selected{% endif %}>{{ city }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="fsni-list-filter">
+				<label for="fsni-department-list-filter">{{ _("Team") }}</label>
+				<select class="form-control fsni-list-filter-select" id="fsni-department-list-filter" name="list_department">
+					<option value="">{{ _("All teams") }}</option>
+					{% for department in list_filter_options.departments %}
+					<option value="{{ department.name }}" {% if list_filters.department == department.name %}selected{% endif %}>{{ department.team or department.name }}</option>
+					{% endfor %}
+				</select>
+			</div>
+		</form>
 		{% endif %}
 
 		<section>
@@ -112,13 +177,15 @@
 					<thead>
 						<tr>
 							<th class="fsni-user-head">{{ sort_link(_("User"), "user") }}</th>
-							<th class="text-center">{{ sort_link(_("Pick"), "pick_a") }}</th>
-							<th class="text-center">:</th>
-							<th class="text-center">{{ sort_link(_("Pick"), "pick_b") }}</th>
+							<th colspan="3" class="text-center">{{ _("Pick") }}</th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Exact result: the predicted score exactly matches the final score.') }}">{{ sort_link(_("ER"), "exact_result") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Good difference: the predicted goal difference matches the final goal difference.') }}">{{ sort_link(_("GD"), "good_difference") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Good trend: the prediction has the correct winner, or correctly predicts a draw.') }}">{{ sort_link(_("GT"), "good_trend") }}</span></th>
 							<th class="text-center">{{ sort_link(_("Points"), "points") }}</th>
-							<th class="text-center">{{ sort_link(_("Coef"), "coefficient") }}</th>
-							<th class="text-center">{{ sort_link(_("Factor"), "factor") }}</th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Round coefficient applied to the pick points.') }}">{{ sort_link(_("Coef"), "coefficient") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Difficulty factor based on how many players got the result trend right in the selected leaderboard scope.') }}">{{ sort_link(_("Factor"), "factor") }}</span></th>
 							<th class="text-center">{{ sort_link(_("Tot. Points"), "total_points") }}</th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ total_points_cumulated_help }}">{{ sort_link(_("Cum."), "total_points_cumulated") }}</span></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -129,16 +196,20 @@
 									<button class="fsni-star-button {{ 'is-favorite' if pick.is_favorite else '' }}" type="button" data-user="{{ pick.user }}" aria-label="{{ _('Toggle favorite') }}">
 										<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.1l2.1 4.25 4.7.68-3.4 3.31.8 4.68L8 11.8l-4.2 2.22.8-4.68-3.4-3.31 4.7-.68L8 1.1z"/></svg>
 									</button>
-									<span>{{ pick.user_full_name }}</span>
+									<a class="fsni-user-link" href="{{ my_picks_link(pick.user) }}">{{ pick.user_full_name }}</a>
 								</div>
 							</td>
 							<td class="text-center">{{ pick.pick_a or "" }}</td>
 							<td class="text-center">:</td>
 							<td class="text-center">{{ pick.pick_b or "" }}</td>
-							<td class="fsni-number-cell">{{ pick.points or "" }}</td>
-							<td class="fsni-number-cell">{{ pick.coefficient or "" }}</td>
-							<td class="fsni-number-cell">{{ pick.factor or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.exact_result or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.good_difference or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.good_trend or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.points_display or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.coefficient_display or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.factor_display or "" }}</td>
 							<td class="fsni-number-cell">{{ pick.total_points_display or "" }}</td>
+							<td class="fsni-number-cell">{{ pick.total_points_cumulated_display or "" }}</td>
 						</tr>
 						{% endfor %}
 					</tbody>
@@ -211,6 +282,29 @@
 		if (gameSelect) {
 			gameSelect.addEventListener('change', function () {
 				gameSelect.form.submit();
+			});
+		}
+
+		var listFilterForm = document.getElementById('fsni-list-filters');
+		if (listFilterForm) {
+			listFilterForm.querySelectorAll('.fsni-list-filter-select').forEach(function (select) {
+				select.addEventListener('change', function () {
+					listFilterForm.submit();
+				});
+			});
+		}
+
+		var userSearch = document.getElementById('fsni-user-search');
+		if (userSearch) {
+			userSearch.addEventListener('keydown', function (e) {
+				if (e.key === 'Enter') { e.preventDefault(); }
+			});
+			userSearch.addEventListener('input', function () {
+				var term = userSearch.value.toLowerCase();
+				document.querySelectorAll('.fsni-results-table tbody tr').forEach(function (row) {
+					var link = row.querySelector('.fsni-user-link');
+					row.style.display = (!term || (link && link.textContent.toLowerCase().indexOf(term) !== -1)) ? '' : 'none';
+				});
 			});
 		}
 

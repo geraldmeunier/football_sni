@@ -8,9 +8,15 @@
 {% block head_include %}
 {{ super() }}
 <style>
-.fsni-timezone-note { color: #697789; font-size: 13px; font-weight: 600; line-height: 1.45; margin: -4px 0 14px; }
+.fsni-picks-controls { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; margin: 0 0 14px; }
+.fsni-player-filter { display: grid; gap: 6px; min-width: 240px; }
+.fsni-player-filter label { color: #526171; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.fsni-segment { align-items: center; border: 1px solid #c7d1dc; border-radius: 8px; display: inline-flex; overflow: hidden; }
+.fsni-segment a { background: #ffffff; border: 0; color: #526171; display: inline-flex; font-size: 13px; font-weight: 800; line-height: 1; padding: 10px 12px; text-decoration: none; }
+.fsni-segment a + a { border-left: 1px solid #c7d1dc; }
+.fsni-segment a.is-active { background: #0f766e; color: #ffffff; }
 .fsni-table-wrap { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow-x: auto; }
-.fsni-picks-table { border-collapse: collapse; font-size: 14px; line-height: 1.4; min-width: 1040px; table-layout: auto; width: 100%; }
+.fsni-picks-table { border-collapse: collapse; font-size: 14px; line-height: 1.4; min-width: 1480px; table-layout: auto; width: 100%; }
 .fsni-picks-table th { background: #e8f4f2; border-bottom: 1px solid #c7d1dc; color: #0f766e; font-size: 12px; font-weight: 800; letter-spacing: 0; padding: 12px 10px; text-align: left; text-transform: uppercase; white-space: nowrap; }
 .fsni-picks-table th.text-center { text-align: center; }
 .fsni-picks-table td { border-bottom: 1px solid #dde3ea; color: #526171; font-size: 14px; padding: 10px 10px; vertical-align: middle; }
@@ -23,7 +29,7 @@
 .fsni-round-col, .fsni-date-col { width: 118px; max-width: 118px; }
 .fsni-team-a { padding-right: 6px; text-align: right; }
 .fsni-team-b { padding-left: 6px; text-align: left; }
-.fsni-flag-cell, .fsni-versus, .fsni-pick-input-cell { text-align: center; }
+.fsni-flag-cell, .fsni-versus, .fsni-pick-input-cell, .fsni-score-cell, .fsni-stat-cell { text-align: center; }
 .fsni-flag-cell { padding-left: 4px; padding-right: 4px; width: 38px; }
 .fsni-flag-cell img { display: inline-block; height: 20px; max-width: 32px; vertical-align: middle; }
 .fsni-versus { color: #697789; font-weight: 900; padding-left: 2px; padding-right: 2px; width: 12px; }
@@ -31,8 +37,17 @@
 .fsni-pick-input { appearance: textfield; background: #ffffff; border: 1px solid #c7d1dc; border-radius: 8px; color: #162033; font-size: 14px; font-weight: 800; height: 32px; margin: 0 auto; max-width: 42px; padding: 4px 3px; text-align: center; }
 .fsni-pick-input:focus { border-color: #0f766e; box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.14); outline: 0; }
 .fsni-pick-input:disabled { background: #edf2f7; color: #697789; }
-.fsni-result-cell { font-weight: 700; white-space: nowrap; }
+.fsni-score-cell, .fsni-stat-cell, .fsni-ranking-cell { color: #162033; font-weight: 800; white-space: nowrap; }
+.fsni-score-cell { width: 38px; }
+.fsni-stat-cell { width: 62px; }
+.fsni-ranking-cell { text-align: center; width: 74px; }
+.fsni-ranking-arrow { display: inline-block; font-size: 13px; font-weight: 900; margin-left: 4px; min-width: 12px; }
+.fsni-ranking-up { color: #0f766e; }
+.fsni-ranking-down { color: #b42318; }
+.fsni-ranking-same { color: #697789; }
+.fsni-result-cell { font-weight: 700; text-align: center; white-space: nowrap; }
 .fsni-result-cell a { color: #0f766e; }
+.fsni-th-help { cursor: help; display: inline-flex; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 </style>
 {% endblock %}
 
@@ -41,16 +56,34 @@
 	{% include "templates/includes/fsni_nav.html" %}
 	<main class="fsni-main">
 		<section class="fsni-page-head">
-			<p class="fsni-kicker">{{ _("Football SNI") }}</p>
-			<h1>{{ _("My Picks") }}</h1>
+			<p class="fsni-kicker">FOOTBALL SNI</p>
+			<h1>{{ _("Picks") }}</h1>
 		</section>
 
 		<section class="fsni-section">
 			<div class="fsni-section-head">
-				<h2>{{ _("Picks") }}</h2>
+				<h2>{{ _("Dates are shown in the") }} {{ user_time_zone }} {{ _("time zone.") }}</h2>
 				<span>{{ picks | length }}</span>
 			</div>
-			<p class="fsni-timezone-note">{{ _("Dates are shown in the") }} {{ user_time_zone }} {{ _("time zone") }}.</p>
+			<div class="fsni-picks-controls">
+				<nav class="fsni-segment" aria-label="{{ _('Picks filter') }}">
+					<a class="{{ 'is-active' if filter_mode == 'general' else '' }}" href="/my_picks?filter=general{{ user_query_suffix }}">{{ _("General") }}</a>
+					<a class="{{ 'is-active' if filter_mode == 'site' else '' }}" href="/my_picks?filter=site{{ user_query_suffix }}">{{ current_user_site or _("Site") }}</a>
+					{% for department in current_departments %}
+					<a class="{{ 'is-active' if filter_mode == 'department' and current_department and department.name == current_department.name else '' }}" href="/my_picks?filter=department{{ user_query_suffix }}&department={{ department.name | urlencode }}">{{ department.team or department.name }}</a>
+					{% endfor %}
+				</nav>
+				<form class="fsni-player-filter" method="get">
+					<label for="fsni-player-select">{{ _("Player") }}</label>
+					<select class="form-control" id="fsni-player-select" name="user">
+						{% for player in players %}
+						<option value="{{ player.user }}" {% if player.user == selected_user %}selected{% endif %}>{{ player.user_full_name }}</option>
+						{% endfor %}
+					</select>
+					<input type="hidden" name="filter" value="{{ filter_mode }}">
+					{% if current_department %}<input type="hidden" name="department" value="{{ current_department.name }}">{% endif %}
+				</form>
+			</div>
 			<datalist id="fsni-pick-values">
 				{% for value in pick_values %}
 				<option value="{{ value }}"></option>
@@ -65,23 +98,45 @@
 							<th>{{ _("Game ID") }}</th>
 							<th class="fsni-round-col">{{ _("Round") }}</th>
 							<th class="fsni-date-col">{{ _("Date") }}</th>
-							<th colspan="7" class="text-center">{{ _("Game") }}</th>
-							<th>{{ _("Result") }}</th>
+							<th colspan="2"></th>
+							<th colspan="3" class="text-center">{{ _("Game") }}</th>
+							<th colspan="2"></th>
+							<th colspan="3" class="text-center">{{ _("Score") }}</th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Exact result: the predicted score exactly matches the final score.') }}">{{ _("ER") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Good difference: the predicted goal difference matches the final goal difference.') }}">{{ _("GD") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Good trend: the prediction has the correct winner, or correctly predicts a draw.') }}">{{ _("GT") }}</span></th>
+							<th class="text-center">{{ _("Points") }}</th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Round coefficient applied to the pick points.') }}">{{ _("Coef") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Difficulty factor based on how many players got the result trend right in the selected leaderboard scope.') }}">{{ _("Factor") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Cumulated total points in the selected leaderboard scope.') }}">{{ _("Cum.") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Current ranking in the selected leaderboard scope. The arrow compares it with the previous ranking.') }}">{{ _("Ranking") }}</span></th>
+							<th class="text-center">{{ _("Result") }}</th>
 						</tr>
 					</thead>
 					<tbody>
 						{% for pick in picks %}
-						<tr data-pick="{{ pick.name }}" class="{{ '' if pick.open else 'is-closed' }}">
+						<tr data-pick="{{ pick.name }}" data-can-edit="{{ 1 if pick.can_edit else 0 }}" class="{{ '' if pick.can_edit else 'is-closed' }}">
 							<td class="fsni-strong">{{ pick.game_id or "" }}</td>
 							<td class="fsni-round-col">{{ pick.display_round or "" }}</td>
 							<td class="fsni-date fsni-date-col">{{ pick.display_date or "" }}</td>
 							<td class="fsni-team fsni-team-a">{{ pick.team_a or "" }}</td>
 							<td class="fsni-flag-cell">{% if pick.team_a_image_src %}<img src="{{ pick.team_a_image_src }}" alt="{{ pick.team_a or '' }}">{% endif %}</td>
-							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_a" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_a or '' }}" {% if not pick.open %}disabled{% endif %}></td>
+							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_a" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_a or '' }}" {% if not pick.can_edit %}disabled{% endif %}></td>
 							<td class="fsni-versus">:</td>
-							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_b" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_b or '' }}" {% if not pick.open %}disabled{% endif %}></td>
+							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_b" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_b or '' }}" {% if not pick.can_edit %}disabled{% endif %}></td>
 							<td class="fsni-flag-cell">{% if pick.team_b_image_src %}<img src="{{ pick.team_b_image_src }}" alt="{{ pick.team_b or '' }}">{% endif %}</td>
 							<td class="fsni-team fsni-team-b">{{ pick.team_b or "" }}</td>
+							<td class="fsni-score-cell">{{ pick.score_a_display }}</td>
+							<td class="fsni-versus">{% if pick.has_score %}:{% endif %}</td>
+							<td class="fsni-score-cell">{{ pick.score_b_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.exact_result_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.good_difference_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.good_trend_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.points_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.coefficient_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.factor_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.total_points_cumulated_display }}</td>
+							<td class="fsni-ranking-cell">{% if pick.ranking_display %}<span>{{ pick.ranking_display }}</span>{% if pick.ranking_move == 'up' %}<span class="fsni-ranking-arrow {{ pick.ranking_move_class }}">&uarr;</span>{% elif pick.ranking_move == 'down' %}<span class="fsni-ranking-arrow {{ pick.ranking_move_class }}">&darr;</span>{% elif pick.ranking_move == 'same' %}<span class="fsni-ranking-arrow {{ pick.ranking_move_class }}">&rarr;</span>{% endif %}{% endif %}</td>
 							<td class="fsni-result-cell">{% if not pick.open %}<a href="{{ pick.result_url }}">{{ _("View") }}</a>{% endif %}</td>
 						</tr>
 						{% endfor %}
@@ -168,7 +223,7 @@
 	}
 
 	function save(row) {
-		if (!row || row.classList.contains('is-closed')) {
+		if (!row || row.classList.contains('is-closed') || row.dataset.canEdit !== '1') {
 			return;
 		}
 
@@ -215,6 +270,13 @@
 	}
 
 	frappe.ready(function () {
+		var playerSelect = document.getElementById('fsni-player-select');
+		if (playerSelect) {
+			playerSelect.addEventListener('change', function () {
+				playerSelect.form.submit();
+			});
+		}
+
 		document.querySelectorAll('.fsni-pick-input').forEach(function (input) {
 			var row = input.closest('tr[data-pick]');
 			if (row && !row.dataset.savedSignature) {

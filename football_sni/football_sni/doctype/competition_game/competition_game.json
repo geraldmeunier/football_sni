@@ -115,10 +115,12 @@
   },
   {
    "default": "1",
+   "description": "Is Open until 1hr before the game starts",
    "fieldname": "open",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Open"
+   "label": "Open",
+   "read_only": 1
   },
   {
    "fieldname": "info_a",
@@ -132,28 +134,33 @@
   },
   {
    "default": "0",
+   "description": "Set Score Updated = 1 once the score have been updated",
    "fieldname": "score_updated",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Score Updated"
+   "label": "Score Updated",
+   "read_only": 1
   },
   {
    "default": "1",
+   "description": "Once the game is not open anymore we can show it in reports",
    "fieldname": "do_not_show",
    "fieldtype": "Check",
    "label": "Do not Show"
   },
   {
    "default": "0",
+   "description": "Once scores and rankins are calculated, the game is validated",
    "fieldname": "validated",
    "fieldtype": "Check",
-   "label": "Validated"
+   "label": "Validated",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-02 00:47:49.232069",
+ "modified": "2026-06-02 15:12:36.943504",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Game",
