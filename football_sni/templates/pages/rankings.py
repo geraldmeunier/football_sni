@@ -64,14 +64,28 @@ def get_context(context):
 
 
 def get_ranking_games():
-	return frappe.db.sql(
+	validated_games = frappe.db.sql(
 		"""
-		select game.name, game.game_id, game.team_a, game.team_b, game.competition, game.start_time
+		select game.name, game.game_id, game.team_a, game.team_b, game.competition, game.start_time, game.validated
 		from `tabCompetition Game` game
 		inner join `tabCompetition` competition on competition.name = game.competition
 		where competition.open = 1
 			and game.validated = 1
 		order by game.start_time desc, cast(game.game_id as unsigned) desc, game.name desc
+		""",
+		as_dict=True,
+	)
+	if validated_games:
+		return validated_games
+
+	return frappe.db.sql(
+		"""
+		select game.name, game.game_id, game.team_a, game.team_b, game.competition, game.start_time, game.validated
+		from `tabCompetition Game` game
+		inner join `tabCompetition` competition on competition.name = game.competition
+		where competition.open = 1
+			and game.open = 1
+		order by game.start_time asc, cast(game.game_id as unsigned) asc, game.name asc
 		""",
 		as_dict=True,
 	)
@@ -96,7 +110,7 @@ def get_competition_pick_field(fieldname, fallback='total_points_cumulated'):
 	return fallback
 
 
-def apply_general_list_filters(conditions, params, list_filters):
+def apply_general_list_filters(conditions, params, list_filters, user_reference="ranking.user"):
 	if list_filters.get("country") or list_filters.get("city"):
 		conditions.append(
 			"""exists (
@@ -111,10 +125,10 @@ def apply_general_list_filters(conditions, params, list_filters):
 		params["city"] = list_filters.get("city") or ""
 	if list_filters.get("department"):
 		conditions.append(
-			"""exists (
+			f"""exists (
 				select 1
 				from `tabFNSI User Department` user_department
-				where user_department.user = ranking.user
+				where user_department.user = {user_reference}
 					and user_department.department = %(list_department)s
 					and user_department.status = 'Validated'
 			)"""
@@ -125,6 +139,18 @@ def apply_general_list_filters(conditions, params, list_filters):
 def get_rankings(competition, selected_game, filter_mode, current_user_site, current_department, favorite_members=None, only_favorites=False, list_filters=None):
 	if not competition or not selected_game:
 		return []
+
+	if not selected_game.validated:
+		return get_open_game_players(
+			competition,
+			selected_game,
+			filter_mode,
+			current_user_site,
+			current_department,
+			favorite_members,
+			only_favorites,
+			list_filters,
+		)
 
 	favorite_members = favorite_members or set()
 	ranking_field_name, prior_ranking_field_name, cumulative_field = RANKING_FIELDS[filter_mode]
@@ -219,6 +245,69 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 		row.is_favorite = row.user in favorite_members
 		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=4)
 		row.move = get_ranking_move(row.prior_ranking, row.ranking)
+	return rows
+
+
+def get_open_game_players(competition, selected_game, filter_mode, current_user_site, current_department, favorite_members=None, only_favorites=False, list_filters=None):
+	favorite_members = favorite_members or set()
+	conditions = ["pick.competition = %(competition)s", "pick.game = %(game)s"]
+	params = {
+		"competition": competition,
+		"game": selected_game.name,
+	}
+	joins = []
+
+	if filter_mode == FILTER_SITE:
+		if not current_user_site:
+			return []
+		conditions.append("user.location = %(site)s")
+		params["site"] = current_user_site
+	elif filter_mode == FILTER_DEPARTMENT:
+		if not current_department:
+			return []
+		joins.append(
+			"""inner join `tabFNSI User Department` selected_department
+				on selected_department.user = pick.user
+				and selected_department.department = %(department)s
+				and selected_department.status = 'Validated'"""
+		)
+		params["department"] = current_department.name
+
+	if filter_mode == FILTER_GENERAL and list_filters:
+		apply_general_list_filters(conditions, params, list_filters, user_reference="pick.user")
+
+	if only_favorites:
+		if not favorite_members:
+			return []
+		conditions.append("pick.user in %(favorite_members)s")
+		params["favorite_members"] = tuple(favorite_members)
+
+	rows = frappe.db.sql(
+		f"""
+		select distinct
+			pick.user,
+			coalesce(nullif(user.full_name, ''), user.name) as user_full_name,
+			0 as ranking,
+			0 as prior_ranking,
+			0 as total_points_cumulated,
+			0 as total_exact_result,
+			0 as total_good_difference,
+			0 as total_good_trend
+		from `tabCompetition Pick` pick
+		inner join `tabUser` user on user.name = pick.user
+		{' '.join(joins)}
+		where {' and '.join(conditions)}
+		order by user_full_name asc, pick.user asc
+		""",
+		params,
+		as_dict=True,
+	)
+
+	for row in rows:
+		row.ranking = ""
+		row.is_favorite = row.user in favorite_members
+		row.total_points_cumulated_display = ""
+		row.move = ""
 	return rows
 
 

@@ -2,21 +2,22 @@ import frappe
 from frappe import _
 from frappe.utils import is_markdown, markdown
 
-from football_sni.website import add_user_settings_context, require_user_location
+from football_sni.website import add_user_settings_context, require_login
 
 
 def get_context(context):
-	require_user_location("/faq")
+	require_login("/faq")
 	add_user_settings_context(context)
 	context.no_cache = 1
 	context.show_sidebar = 0
 	context.full_width = 1
 	context.body_class = "fsni-site"
 	context.title = _("FAQ")
-	context.categories = get_faq_categories()
+	context.selected_article = (frappe.form_dict.get("article") or "").strip().lower()
+	context.categories = get_faq_categories(context.selected_article)
 
 
-def get_faq_categories():
+def get_faq_categories(selected_article=""):
 	categories = frappe.db.sql(
 		"""
 		select
@@ -38,13 +39,14 @@ def get_faq_categories():
 		as_dict=True,
 	)
 
-	articles_by_category = get_faq_articles_by_category()
+	articles_by_category = get_faq_articles_by_category(selected_article)
 	for category in categories:
 		category.articles = articles_by_category.get(category.name, [])
+
 	return categories
 
 
-def get_faq_articles_by_category():
+def get_faq_articles_by_category(selected_article=""):
 	articles = frappe.db.sql(
 		"""
 		select
@@ -67,5 +69,17 @@ def get_faq_articles_by_category():
 	for article in articles:
 		if is_markdown(article.content):
 			article.content = markdown(article.content)
+		article.is_selected = is_selected_article(article, selected_article)
 		articles_by_category.setdefault(article.category, []).append(article)
 	return articles_by_category
+
+
+def is_selected_article(article, selected_article):
+	if not selected_article:
+		return False
+	candidates = {
+		(article.name or "").strip().lower(),
+		(article.title or "").strip().lower(),
+		(article.route or "").strip().lower(),
+	}
+	return selected_article in candidates

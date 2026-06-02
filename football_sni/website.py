@@ -3,7 +3,9 @@ from urllib.parse import quote
 import frappe
 from frappe import _
 from frappe.utils import get_system_timezone
+from frappe.utils.html_utils import sanitize_html
 from frappe.utils.momentjs import get_all_timezones
+from markupsafe import Markup
 
 
 def get_website_user_home_page(user):
@@ -42,17 +44,34 @@ def get_current_user_location(user=None):
 	return ""
 
 
+def get_current_user_rgpd_consent(user=None):
+	user = user or frappe.session.user
+	if user == "Guest" or not frappe.db.has_column("User", "fsni_rgpd_consent"):
+		return False
+	return bool(frappe.db.get_value("User", user, "fsni_rgpd_consent"))
+
+
+def has_user_access(user=None):
+	return bool(get_current_user_location(user) and get_current_user_rgpd_consent(user))
+
+
 def add_user_settings_context(context):
 	context.time_zones = get_all_timezones()
+	user_fields = ["time_zone", "location"]
+	if frappe.db.has_column("User", "fsni_rgpd_consent"):
+		user_fields.append("fsni_rgpd_consent")
 	user_settings = frappe.db.get_value(
 		"User",
 		frappe.session.user,
-		["time_zone", "location"],
+		user_fields,
 		as_dict=True,
 	) or {}
 	context.current_time_zone = user_settings.get("time_zone") or get_system_timezone()
 	context.current_user_site = get_current_user_location()
+	context.fsni_rgpd_consent = bool(user_settings.get("fsni_rgpd_consent"))
+	context.fsni_rgpd_text = get_rgpd_text()
 	context.has_user_location = bool(context.current_user_site)
+	context.has_user_access = bool(context.has_user_location and context.fsni_rgpd_consent)
 	context.user_sites = frappe.get_all(
 		get_user_site_doctype(),
 		fields=["name", "country", "site"],
@@ -68,9 +87,14 @@ def add_user_settings_context(context):
 	]
 
 
+def get_rgpd_text():
+	text = frappe.db.get_single_value("FSNI Settings", "rgpd") or ""
+	return Markup(sanitize_html(text, always_sanitize=True))
+
+
 def require_user_location(redirect_to="/home"):
 	require_login(redirect_to)
-	if get_current_user_location():
+	if has_user_access():
 		return
 
 	frappe.local.flags.redirect_location = "/home"
@@ -163,7 +187,7 @@ def subscribe_to_competition(competition):
 	frappe.db.commit()
 	return {
 		"competition": competition,
-		"redirect_to": "/my_competition?competition=" + quote(competition, safe=""),
+		"redirect_to": "/home",
 		"message": _("Thanks! An email will be sent as soon as your space is created."),
 	}
 
@@ -192,7 +216,7 @@ def update_competition_pick(pick, pick_a=None, pick_b=None):
 
 
 @frappe.whitelist()
-def update_user_settings(time_zone, user_site=None):
+def update_user_settings(time_zone, user_site=None, rgpd_consent=None):
 	require_login('/home')
 
 	if time_zone not in get_all_timezones():
@@ -205,12 +229,15 @@ def update_user_settings(time_zone, user_site=None):
 	user = frappe.get_doc('User', frappe.session.user)
 	user.time_zone = time_zone
 	user.location = user_site
+	if frappe.db.has_column("User", "fsni_rgpd_consent") and rgpd_consent is not None:
+		user.fsni_rgpd_consent = frappe.utils.cint(rgpd_consent)
 	user.save(ignore_permissions=True)
 	frappe.db.commit()
 
 	return {
 		'time_zone': user.time_zone,
 		'user_site': user.location,
+		'rgpd_consent': bool(getattr(user, "fsni_rgpd_consent", 0)),
 	}
 
 

@@ -84,8 +84,10 @@
 		</section>
 
 		<section>
-			{% if selected_game %}
+			{% if selected_game and selected_game.validated %}
 			<p class="fsni-ranking-meta">{{ _("After") }} #{{ selected_game.game_id }} - {{ selected_game.team_a }} : {{ selected_game.team_b }}</p>
+			{% elif selected_game %}
+			<p class="fsni-ranking-meta">{{ _("Players for") }} #{{ selected_game.game_id }} - {{ selected_game.team_a }} : {{ selected_game.team_b }}</p>
 			{% endif %}
 
 			{% if filter_mode == 'general' and selected_game %}
@@ -94,7 +96,7 @@
 				<input type="hidden" name="filter" value="general">
 				{% if only_favorites %}<input type="hidden" name="favorites" value="1">{% endif %}
 				<div class="fsni-list-filter">
-					<label for="fsni-user-search">{{ _("User") }}</label>
+					<label for="fsni-user-search">{{ _("Player") }}</label>
 					<input type="search" class="form-control" id="fsni-user-search" placeholder="{{ _('Search...') }}" autocomplete="off">
 				</div>
 				<div class="fsni-list-filter">
@@ -132,7 +134,7 @@
 					<thead>
 						<tr>
 							<th>{{ _("Rank") }}</th>
-							<th class="fsni-user-head">{{ _("User") }}</th>
+							<th class="fsni-user-head">{{ _("Player") }}</th>
 							<th><span class="fsni-th-help" title="{{ _('Exact result: the predicted score exactly matches the final score.') }}">{{ _("ER") }}</span></th>
 							<th><span class="fsni-th-help" title="{{ _('Good difference: the predicted goal difference matches the final goal difference.') }}">{{ _("GD") }}</span></th>
 							<th><span class="fsni-th-help" title="{{ _('Good trend: the prediction has the correct winner, or correctly predicts a draw.') }}">{{ _("GT") }}</span></th>

@@ -1,79 +1,63 @@
 <nav class="fsni-side-nav" aria-label="{{ _('Football SNI navigation') }}">
-	{% if has_user_location %}
+	{% if has_user_access %}
 	<a class="fsni-brand" href="/home">
 	{% else %}
 	<div class="fsni-brand fsni-disabled-link" aria-disabled="true">
 	{% endif %}
 		<span class="fsni-brand-mark">FC</span>
 		<span class="fsni-brand-text">Fouju Club</span>
-	{% if has_user_location %}
+	{% if has_user_access %}
 	</a>
 	{% else %}
 	</div>
 	{% endif %}
 	<div class="fsni-nav-links">
-		{% if has_user_location %}
 		<a class="fsni-nav-link {% if active_page == 'home' %}active{% endif %}" href="/home">
-		{% else %}
-		<span class="fsni-nav-link {% if active_page == 'home' %}active{% endif %} fsni-disabled-link" aria-disabled="true">
-		{% endif %}
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-home"></use></svg></span>
 			<span>Home</span>
-		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+		</a>
 
-		{% if has_user_location %}
 		<a class="fsni-nav-link {% if active_page == 'faq' %}active{% endif %}" href="/faq">
-		{% else %}
-		<span class="fsni-nav-link {% if active_page == 'faq' %}active{% endif %} fsni-disabled-link" aria-disabled="true">
-		{% endif %}
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-help"></use></svg></span>
 			<span>FAQ</span>
-		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+		</a>
 
-		{% if has_user_location %}
-		<a class="fsni-nav-link {% if active_page == 'my_competition' %}active{% endif %}" href="/my_competition">
-		{% else %}
-		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
-		{% endif %}
-			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-award"></use></svg></span>
-			<span>My Competition</span>
-		{% if has_user_location %}</a>{% else %}</span>{% endif %}
 
-		{% if has_user_location %}
+		{% if has_user_access %}
 		<a class="fsni-nav-link {% if active_page == 'my_local_team' %}active{% endif %}" href="/my_local_team">
 		{% else %}
 		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
 		{% endif %}
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-shirt"></use></svg></span>
 			<span>My Local Team</span>
-		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+		{% if has_user_access %}</a>{% else %}</span>{% endif %}
 
-		{% if has_user_location %}
+		{% if has_user_access %}
 		<a class="fsni-nav-link {% if active_page == 'my_picks' %}active{% endif %}" href="/my_picks">
 		{% else %}
 		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
 		{% endif %}
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-target"></use></svg></span>
 			<span>My Picks</span>
-		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+		{% if has_user_access %}</a>{% else %}</span>{% endif %}
 
-		{% if has_user_location %}
+		{% if has_user_access %}
 		<a class="fsni-nav-link {% if active_page == 'game_result' %}active{% endif %}" href="/game_result">
 		{% else %}
 		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
 		{% endif %}
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-clipboard"></use></svg></span>
 			<span>Game Results</span>
-		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+		{% if has_user_access %}</a>{% else %}</span>{% endif %}
 
-		{% if has_user_location %}
+		{% if has_user_access %}
 		<a class="fsni-nav-link {% if active_page == 'rankings' %}active{% endif %}" href="/rankings">
 		{% else %}
 		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
 		{% endif %}
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-medal"></use></svg></span>
 			<span>Rankings</span>
-		{% if has_user_location %}</a>{% else %}</span>{% endif %}
+		{% if has_user_access %}</a>{% else %}</span>{% endif %}
 	</div>
 	<div class="fsni-nav-footer">
 		<a class="fsni-nav-link fsni-logout-link" href="/logout">

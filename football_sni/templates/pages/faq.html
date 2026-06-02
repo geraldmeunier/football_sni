@@ -45,7 +45,7 @@
 				</header>
 				<div class="fsni-faq-articles">
 					{% for article in category.articles %}
-					<details class="fsni-faq-article">
+					<details class="fsni-faq-article" {% if article.is_selected %}open{% endif %}>
 						<summary>
 							<span>{{ article.title }}</span>
 						</summary>

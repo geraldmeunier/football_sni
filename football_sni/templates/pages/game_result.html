@@ -137,7 +137,7 @@
 			{% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
 			{% if sort_order %}<input type="hidden" name="sort_order" value="{{ sort_order }}">{% endif %}
 			<div class="fsni-list-filter">
-				<label for="fsni-user-search">{{ _("User") }}</label>
+				<label for="fsni-user-search">{{ _("Player") }}</label>
 				<input type="search" class="form-control" id="fsni-user-search" placeholder="{{ _('Search...') }}" autocomplete="off">
 			</div>
 			<div class="fsni-list-filter">
@@ -176,7 +176,7 @@
 				<table class="fsni-results-table">
 					<thead>
 						<tr>
-							<th class="fsni-user-head">{{ sort_link(_("User"), "user") }}</th>
+							<th class="fsni-user-head">{{ sort_link(_("Player"), "user") }}</th>
 							<th colspan="3" class="text-center">{{ _("Pick") }}</th>
 							<th class="text-center"><span class="fsni-th-help" title="{{ _('Exact result: the predicted score exactly matches the final score.') }}">{{ sort_link(_("ER"), "exact_result") }}</span></th>
 							<th class="text-center"><span class="fsni-th-help" title="{{ _('Good difference: the predicted goal difference matches the final goal difference.') }}">{{ sort_link(_("GD"), "good_difference") }}</span></th>

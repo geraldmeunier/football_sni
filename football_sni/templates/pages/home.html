@@ -25,6 +25,12 @@
 .fsni-location-modal-field { margin-bottom: 14px; }
 .fsni-location-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
 .fsni-location-modal-error { color: #b42318; font-size: 13px; font-weight: 700; line-height: 1.45; margin: 10px 0 0; min-height: 18px; }
+.fsni-rgpd-text { color: #526171; font-size: 13px; font-weight: 600; line-height: 1.5; margin: 10px 0 0; max-height: 132px; overflow: auto; padding-right: 4px; }
+.fsni-rgpd-text :first-child { margin-top: 0; }
+.fsni-rgpd-text :last-child { margin-bottom: 0; }
+.fsni-home-settings-card .fsni-rgpd-check { align-items: flex-start; color: #162033; display: flex; font-size: 13px; font-weight: 750; gap: 8px; line-height: 1.35; margin: 12px 0 0; text-transform: none; }
+.fsni-home-settings-card .fsni-rgpd-check input { flex: 0 0 auto; margin-top: 2px; }
+.fsni-rgpd-link { color: #0f766e; display: inline-block; font-size: 13px; font-weight: 800; margin-top: 10px; }
 body.fsni-modal-open { overflow: hidden; }
 @media (max-width: 900px) { .fsni-home-settings { grid-template-columns: 1fr; } }
 </style>
@@ -41,7 +47,17 @@ body.fsni-modal-open { overflow: hidden; }
 
 		<section class="fsni-section" aria-labelledby="home-user-settings">
 			<h2 class="fsni-home-settings-title" id="home-user-settings">{{ _("User Settings") }}</h2>
-			<form class="fsni-home-settings" id="fsni-user-settings-form" data-has-location="{{ 1 if has_user_location else 0 }}">
+			<form class="fsni-home-settings" id="fsni-user-settings-form" data-has-access="{{ 1 if has_user_access else 0 }}" data-has-location="{{ 1 if has_user_location else 0 }}">
+				<div class="fsni-home-settings-card">
+					<label for="fsni-rgpd-consent">{{ _("RGPD") }}</label>
+					{% if fsni_rgpd_text %}<div class="fsni-rgpd-text">{{ fsni_rgpd_text | safe }}</div>{% endif %}
+					<label class="fsni-rgpd-check" for="fsni-rgpd-consent">
+						<input id="fsni-rgpd-consent" name="rgpd_consent" type="checkbox" value="1" {% if fsni_rgpd_consent %}checked{% endif %}>
+						<span>{{ _("I have read and consent to the RGPD information.") }}</span>
+					</label>
+					{% if not fsni_rgpd_consent %}<p class="fsni-location-required">{{ _("RGPD consent must be checked before you can access the site links.") }}</p>{% endif %}
+					<a class="fsni-rgpd-link" href="/faq?article=rgpd">{{ _("Read the RGPD article in the FAQ") }}</a>
+				</div>
 				<div class="fsni-home-settings-card">
 					<label for="fsni-user-site">{{ _("Location") }}</label>
 					<select class="form-control" id="fsni-user-site" name="user_site">
@@ -74,13 +90,13 @@ body.fsni-modal-open { overflow: hidden; }
 			</div>
 			<div class="fsni-card-grid">
 				{% for competition in open_subscribed %}
-				{% if has_user_location %}<a class="fsni-competition-card" href="/my_competition?competition={{ competition.url_name }}">{% else %}<div class="fsni-competition-card fsni-disabled-card" aria-disabled="true">{% endif %}
+				<div class="fsni-competition-card{% if not has_user_access %} fsni-disabled-card{% endif %}" {% if not has_user_access %}aria-disabled="true"{% endif %}>
 					{% include "templates/includes/fsni_competition_image.html" %}
 					<div class="fsni-card-copy">
 						<p>{{ _("Playing now") }}</p>
 						<h3>{{ competition.title }}</h3>
 					</div>
-				{% if has_user_location %}</a>{% else %}</div>{% endif %}
+				</div>
 				{% else %}
 				<p class="fsni-empty">{{ _("You are not playing an open competition yet.") }}</p>
 				{% endfor %}
@@ -100,7 +116,7 @@ body.fsni-modal-open { overflow: hidden; }
 						<p>{{ _("Open") }}</p>
 						<h3>{{ competition.title }}</h3>
 					</div>
-					<button class="btn btn-primary fsni-play-button" type="button" data-competition="{{ competition.name }}" {% if not has_user_location %}disabled{% endif %}>
+					<button class="btn btn-primary fsni-play-button" type="button" data-competition="{{ competition.name }}" {% if not has_user_access %}disabled{% endif %}>
 						{{ _("Play") }}
 					</button>
 				</article>
@@ -117,13 +133,13 @@ body.fsni-modal-open { overflow: hidden; }
 			</div>
 			<div class="fsni-card-grid">
 				{% for competition in past %}
-				{% if has_user_location %}<a class="fsni-competition-card" href="/rankings?competition={{ competition.url_name }}">{% else %}<div class="fsni-competition-card fsni-disabled-card" aria-disabled="true">{% endif %}
+				{% if has_user_access %}<a class="fsni-competition-card" href="/rankings?competition={{ competition.url_name }}">{% else %}<div class="fsni-competition-card fsni-disabled-card" aria-disabled="true">{% endif %}
 					{% include "templates/includes/fsni_competition_image.html" %}
 					<div class="fsni-card-copy">
 						<p>{{ _("Final rankings") }}</p>
 						<h3>{{ competition.title }}</h3>
 					</div>
-				{% if has_user_location %}</a>{% else %}</div>{% endif %}
+				{% if has_user_access %}</a>{% else %}</div>{% endif %}
 				{% else %}
 				<p class="fsni-empty">{{ _("Past competitions will appear here.") }}</p>
 				{% endfor %}
@@ -164,15 +180,16 @@ frappe.ready(function () {
 	var form = document.getElementById('fsni-user-settings-form');
 	var timeZone = document.getElementById('fsni-time-zone');
 	var userSite = document.getElementById('fsni-user-site');
+	var rgpdConsent = document.getElementById('fsni-rgpd-consent');
 	var status = document.getElementById('fsni-settings-status');
 	if (!form || !timeZone || !userSite) {
 		return;
 	}
 
 	var newLocationValue = '__new_location__';
-	var hadLocation = form.dataset.hasLocation === '1';
+	var hadAccess = form.dataset.hasAccess === '1';
 	var lastUserSite = userSite.value;
-	var lastSignature = [timeZone.value, userSite.value].join('|');
+	var lastSignature = [timeZone.value, userSite.value, rgpdConsent && rgpdConsent.checked ? '1' : '0'].join('|');
 	var savingSignature = '';
 
 	function selectUserSite(userSiteName) {
@@ -191,7 +208,7 @@ frappe.ready(function () {
 			return;
 		}
 
-		var signature = [timeZone.value, userSite.value].join('|');
+		var signature = [timeZone.value, userSite.value, rgpdConsent && rgpdConsent.checked ? '1' : '0'].join('|');
 		if (signature === lastSignature || signature === savingSignature) {
 			return;
 		}
@@ -200,7 +217,7 @@ frappe.ready(function () {
 		status.textContent = __('Saving...');
 		frappe.call({
 			method: 'football_sni.website.update_user_settings',
-			args: { time_zone: timeZone.value, user_site: userSite.value },
+			args: { time_zone: timeZone.value, user_site: userSite.value, rgpd_consent: rgpdConsent && rgpdConsent.checked ? 1 : 0 },
 			callback: function (response) {
 				savingSignature = '';
 				if (!response.message) {
@@ -210,7 +227,8 @@ frappe.ready(function () {
 				lastUserSite = response.message.user_site || '';
 				status.textContent = __('Saved');
 				frappe.show_alert({ message: __('User settings updated.'), indicator: 'green' }, 4);
-				if (hadLocation !== Boolean(response.message.user_site)) {
+				var hasAccess = Boolean(response.message.user_site) && Boolean(response.message.rgpd_consent);
+				if (hadAccess !== hasAccess) {
 					window.location.reload();
 				}
 			},
@@ -283,6 +301,9 @@ frappe.ready(function () {
 	});
 
 	timeZone.addEventListener('change', saveSettings);
+	if (rgpdConsent) {
+		rgpdConsent.addEventListener('change', saveSettings);
+	}
 	userSite.addEventListener('change', function () {
 		if (userSite.value === newLocationValue) {
 			openNewLocationDialog();

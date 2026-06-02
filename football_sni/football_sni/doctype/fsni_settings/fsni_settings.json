@@ -9,7 +9,8 @@
   "turnstile_site_key",
   "turnstile_secret_key",
   "bypass_turnstile_validation",
-  "login_message"
+  "login_message",
+  "rgpd"
  ],
  "fields": [
   {
@@ -39,13 +40,18 @@
    "fieldname": "bypass_turnstile_validation",
    "fieldtype": "Check",
    "label": "Bypass Turnstile Validation"
+  },
+  {
+   "fieldname": "rgpd",
+   "fieldtype": "HTML Editor",
+   "label": "RGPD"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-01 22:37:12.932324",
+ "modified": "2026-06-02 22:21:04.778124",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "FSNI Settings",
