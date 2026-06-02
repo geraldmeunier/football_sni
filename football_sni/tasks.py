@@ -713,7 +713,15 @@ def get_rankings_by_query(query, params):
 		params,
 		as_dict=True,
 	)
-	return {row.user: index for index, row in enumerate(rows, start=1)}
+	result = {}
+	rank = 0
+	prev_score = None
+	for index, row in enumerate(rows, start=1):
+		if prev_score is None or row.score != prev_score:
+			rank = index
+			prev_score = row.score
+		result[row.user] = rank
+	return result
 
 
 def notify_site_admins_about_pending_scores(games):

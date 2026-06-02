@@ -108,6 +108,7 @@
 							<th class="text-center">{{ _("Points") }}</th>
 							<th class="text-center"><span class="fsni-th-help" title="{{ _('Round coefficient applied to the pick points.') }}">{{ _("Coef") }}</span></th>
 							<th class="text-center"><span class="fsni-th-help" title="{{ _('Difficulty factor based on how many players got the result trend right in the selected leaderboard scope.') }}">{{ _("Factor") }}</span></th>
+							<th class="text-center"><span class="fsni-th-help" title="{{ _('Total points for this pick in the selected leaderboard scope.') }}">{{ _("Tot.Points") }}</span></th>
 							<th class="text-center"><span class="fsni-th-help" title="{{ _('Cumulated total points in the selected leaderboard scope.') }}">{{ _("Cum.") }}</span></th>
 							<th class="text-center"><span class="fsni-th-help" title="{{ _('Current ranking in the selected leaderboard scope. The arrow compares it with the previous ranking.') }}">{{ _("Ranking") }}</span></th>
 							<th class="text-center">{{ _("Result") }}</th>
@@ -135,9 +136,10 @@
 							<td class="fsni-stat-cell">{{ pick.points_display }}</td>
 							<td class="fsni-stat-cell">{{ pick.coefficient_display }}</td>
 							<td class="fsni-stat-cell">{{ pick.factor_display }}</td>
+							<td class="fsni-stat-cell">{{ pick.total_points_display }}</td>
 							<td class="fsni-stat-cell">{{ pick.total_points_cumulated_display }}</td>
 							<td class="fsni-ranking-cell">{% if pick.ranking_display %}<span>{{ pick.ranking_display }}</span>{% if pick.ranking_move == 'up' %}<span class="fsni-ranking-arrow {{ pick.ranking_move_class }}">&uarr;</span>{% elif pick.ranking_move == 'down' %}<span class="fsni-ranking-arrow {{ pick.ranking_move_class }}">&darr;</span>{% elif pick.ranking_move == 'same' %}<span class="fsni-ranking-arrow {{ pick.ranking_move_class }}">&rarr;</span>{% endif %}{% endif %}</td>
-							<td class="fsni-result-cell">{% if not pick.open %}<a href="{{ pick.result_url }}">{{ _("View") }}</a>{% endif %}</td>
+							<td class="fsni-result-cell">{% if not pick.is_open %}<a href="{{ pick.result_url }}">{{ _("View") }}</a>{% endif %}</td>
 						</tr>
 						{% endfor %}
 					</tbody>

@@ -3,7 +3,7 @@ from urllib.parse import quote
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import get_system_timezone
+from frappe.utils import cint, get_system_timezone
 from frappe.utils.html_utils import sanitize_html
 from frappe.utils.momentjs import get_all_timezones
 from markupsafe import Markup
@@ -201,7 +201,8 @@ def update_competition_pick(pick, pick_a=None, pick_b=None):
 	if doc.user != frappe.session.user:
 		frappe.throw(_('You can only update your own picks.'), frappe.PermissionError)
 
-	if not doc.open:
+	game_open = frappe.db.get_value('Competition Game', doc.game, 'open')
+	if cint(doc.open) != 1 or cint(game_open) != 1:
 		frappe.throw(_('This pick is closed and can no longer be modified.'))
 
 	doc.pick_a = validate_pick_value(pick_a, _('Pick A'))

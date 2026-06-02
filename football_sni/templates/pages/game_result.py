@@ -387,9 +387,9 @@ def get_result_picks(result_game, filter_mode, current_user_site, current_depart
 		row.is_favorite = row.user in favorite_members
 		row.points_display = format_number(row.points, decimals=0)
 		row.coefficient_display = format_number(row.coefficient, decimals=0)
-		row.factor_display = format_number(row.factor, decimals=4)
-		row.total_points_display = format_number(row.total_points, decimals=4)
-		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=4)
+		row.factor_display = format_number(row.factor, decimals=3)
+		row.total_points_display = format_number(row.total_points, decimals=3)
+		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=3)
 
 	return rows
 

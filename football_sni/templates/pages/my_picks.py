@@ -3,7 +3,7 @@ from urllib.parse import quote
 import frappe
 from frappe import _
 
-from frappe.utils import convert_utc_to_timezone, flt, format_datetime, get_datetime
+from frappe.utils import cint, convert_utc_to_timezone, flt, format_datetime, get_datetime
 
 from football_sni.tasks import get_user_time_zone
 from football_sni.templates.pages.game_result import FILTER_DEPARTMENT, FILTER_GENERAL, FILTER_SITE
@@ -14,6 +14,12 @@ FACTOR_FIELDS = {
 	FILTER_GENERAL: 'factor',
 	FILTER_SITE: 'factor_site',
 	FILTER_DEPARTMENT: 'factor_department',
+}
+
+TOTAL_POINTS_FIELDS = {
+	FILTER_GENERAL: 'total_points',
+	FILTER_SITE: 'total_points_site',
+	FILTER_DEPARTMENT: 'total_points_department',
 }
 
 TOTAL_POINTS_CUMULATED_FIELDS = {
@@ -133,6 +139,7 @@ def get_my_picks(user_time_zone=None, filter_mode=FILTER_GENERAL, user=None, cur
 	user = user or frappe.session.user
 	viewing_own_picks = user == frappe.session.user
 	factor_field = f"cp.{FACTOR_FIELDS.get(filter_mode, 'factor')}"
+	total_points_field = f"cp.`{get_competition_pick_field(TOTAL_POINTS_FIELDS.get(filter_mode, 'total_points'), 'total_points')}`"
 	total_points_cumulated_field = f"cp.`{get_competition_pick_field(TOTAL_POINTS_CUMULATED_FIELDS.get(filter_mode, 'total_points_cumulated'))}`"
 	ranking_field, prior_ranking_field = RANKING_FIELDS.get(filter_mode, RANKING_FIELDS[FILTER_GENERAL])
 	ranking_field = f"ranking.{ranking_field}"
@@ -153,6 +160,7 @@ def get_my_picks(user_time_zone=None, filter_mode=FILTER_GENERAL, user=None, cur
 		'''
 		conditions.append('cp.competition = %(department_competition)s')
 		factor_field = 'department_ranking.factor'
+		total_points_field = 'department_ranking.total_points'
 		total_points_cumulated_field = 'department_ranking.total_points_cumulated'
 		ranking_field = 'department_ranking.ranking'
 		prior_ranking_field = 'department_ranking.prior_ranking'
@@ -166,6 +174,7 @@ def get_my_picks(user_time_zone=None, filter_mode=FILTER_GENERAL, user=None, cur
 			cp.competition,
 			cp.game,
 			cp.open,
+			cg.open as game_open,
 			cp.pick_a,
 			cp.pick_b,
 			cg.game_id,
@@ -186,6 +195,7 @@ def get_my_picks(user_time_zone=None, filter_mode=FILTER_GENERAL, user=None, cur
 			cp.points,
 			cp.coefficient,
 			{factor_field} as factor,
+			{total_points_field} as total_points,
 			{total_points_cumulated_field} as total_points_cumulated,
 			{ranking_field} as ranking,
 			{prior_ranking_field} as prior_ranking
@@ -212,8 +222,12 @@ def get_my_picks(user_time_zone=None, filter_mode=FILTER_GENERAL, user=None, cur
 		row.display_date = row.start_date if row.start_date != previous_date else ''
 		row.team_a_image_src = get_team_image_src(row.team_a_image, row.team_a_image_url)
 		row.team_b_image_src = get_team_image_src(row.team_b_image, row.team_b_image_url)
-		row.can_edit = viewing_own_picks and row.open
-		row.has_result = not row.open and row.score_updated
+		row.pick_is_open = cint(row.open) == 1
+		row.game_is_open = cint(row.game_open) == 1
+		row.is_open = row.pick_is_open and row.game_is_open
+		row.has_score_updated = cint(row.score_updated) == 1
+		row.can_edit = viewing_own_picks and row.is_open
+		row.has_result = not row.game_is_open and row.has_score_updated
 		row.has_score = row.has_result and row.score_a not in (None, '') and row.score_b not in (None, '')
 		row.score_a_display = row.score_a if row.has_score else ''
 		row.score_b_display = row.score_b if row.has_score else ''
@@ -222,8 +236,9 @@ def get_my_picks(user_time_zone=None, filter_mode=FILTER_GENERAL, user=None, cur
 		row.good_trend_display = row.good_trend if row.has_result and row.good_trend else ''
 		row.points_display = format_number(row.points, decimals=0) if row.has_result else ''
 		row.coefficient_display = format_number(row.coefficient, decimals=0) if row.has_result else ''
-		row.factor_display = format_number(row.factor, decimals=4) if row.has_result else ''
-		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=4) if row.has_result else ''
+		row.factor_display = format_number(row.factor, decimals=3) if row.has_result else ''
+		row.total_points_display = format_number(row.total_points, decimals=3) if row.has_result else ''
+		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=3) if row.has_result else ''
 		row.ranking_display = get_ranking_display(row.ranking) if row.has_result else ''
 		row.ranking_move = get_ranking_move(row.prior_ranking, row.ranking) if row.has_result else ''
 		row.ranking_move_class = get_ranking_move_class(row.ranking_move)

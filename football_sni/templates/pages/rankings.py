@@ -243,7 +243,7 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 
 	for row in rows:
 		row.is_favorite = row.user in favorite_members
-		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=4)
+		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=3)
 		row.move = get_ranking_move(row.prior_ranking, row.ranking)
 	return rows
 

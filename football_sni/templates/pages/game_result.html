@@ -129,7 +129,8 @@
 		</section>
 		{% endif %}
 
-		{% if filter_mode == 'general' and result_game %}
+		{% if result_game %}
+		{% if filter_mode == 'general' %}
 		<form class="fsni-list-filters" id="fsni-list-filters" method="get">
 			<input type="hidden" name="game" value="{{ game }}">
 			<input type="hidden" name="filter" value="general">
@@ -168,6 +169,14 @@
 				</select>
 			</div>
 		</form>
+		{% else %}
+		<div class="fsni-list-filters">
+			<div class="fsni-list-filter">
+				<label for="fsni-user-search">{{ _("Player") }}</label>
+				<input type="search" class="form-control" id="fsni-user-search" placeholder="{{ _('Search...') }}" autocomplete="off">
+			</div>
+		</div>
+		{% endif %}
 		{% endif %}
 
 		<section>
