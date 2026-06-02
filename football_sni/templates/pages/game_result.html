@@ -248,7 +248,7 @@
 		frappe.call({
 			method: 'football_sni.templates.pages.game_result.toggle_favorite_member',
 			args: {
-				competition: '{{ result_game.competition if result_game else "" }}',
+				competition: {{ (result_game.competition if result_game else "") | tojson }},
 				member: button.dataset.user,
 				is_favorite: shouldBeFavorite ? 1 : 0
 			},

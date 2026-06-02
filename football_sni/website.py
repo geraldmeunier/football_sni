@@ -2,6 +2,7 @@ from urllib.parse import quote
 
 import frappe
 from frappe import _
+from frappe.rate_limiter import rate_limit
 from frappe.utils import get_system_timezone
 from frappe.utils.html_utils import sanitize_html
 from frappe.utils.momentjs import get_all_timezones
@@ -242,6 +243,7 @@ def update_user_settings(time_zone, user_site=None, rgpd_consent=None):
 
 
 @frappe.whitelist()
+@rate_limit(limit=10, seconds=3600)
 def create_user_site(country, site):
 	require_login('/home')
 
@@ -251,6 +253,8 @@ def create_user_site(country, site):
 		frappe.throw(_('Please select a country.'))
 	if not site:
 		frappe.throw(_('Please enter a city.'))
+	if len(site) > 100:
+		frappe.throw(_('City name must not exceed 100 characters.'))
 	if not frappe.db.exists('Country', country):
 		frappe.throw(_('Please select a valid country.'))
 

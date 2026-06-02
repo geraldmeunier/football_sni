@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from frappe.utils import get_email_address, get_url, validate_email_address
+from markupsafe import escape
 
 from football_sni.tasks import get_website_app_name
 from football_sni.website import add_user_settings_context, require_user_location
@@ -296,12 +297,15 @@ def send_team_mail(user, template_name, context):
 		return
 
 	template = ensure_team_email_template(template_name)
-	context = frappe._dict(context or {})
+	context = frappe._dict({
+		k: escape(v) if isinstance(v, str) else v
+		for k, v in (context or {}).items()
+	})
 	context.update(
 		{
-			"app_name": get_website_app_name(),
+			"app_name": escape(get_website_app_name()),
 			"my_local_team_url": get_url("/my_local_team"),
-			"recipient_name": get_user_display_name(user),
+			"recipient_name": escape(get_user_display_name(user)),
 		}
 	)
 	email = template.get_formatted_email(context)
