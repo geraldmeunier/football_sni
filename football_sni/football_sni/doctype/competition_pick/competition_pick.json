@@ -1,6 +1,6 @@
 {
  "actions": [],
- "allow_rename": 1,
+ "autoname": "hash",
  "creation": "2026-06-01 00:03:12.657580",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -20,15 +20,22 @@
   "exact_result",
   "good_difference",
   "good_trend",
+  "no_play",
   "column_break_qrrv",
   "points",
   "coefficient",
   "section_break_ydzt",
   "factor",
+  "total_points",
+  "total_p\u00f6ints_cumulated",
   "column_break_wmro",
   "factor_site",
+  "total_points_site",
+  "total_points_cumulated",
   "column_break_nsdh",
-  "factor_department"
+  "factor_department",
+  "total_points_department",
+  "total_points_department_cumulated"
  ],
  "fields": [
   {
@@ -150,16 +157,52 @@
    "fieldname": "good_trend",
    "fieldtype": "Int",
    "label": "Good Trend"
+  },
+  {
+   "default": "1",
+   "fieldname": "no_play",
+   "fieldtype": "Int",
+   "label": "Did Play"
+  },
+  {
+   "fieldname": "total_points",
+   "fieldtype": "Data",
+   "label": "Total Points"
+  },
+  {
+   "fieldname": "total_points_site",
+   "fieldtype": "Data",
+   "label": "Total Points Site"
+  },
+  {
+   "fieldname": "total_points_department",
+   "fieldtype": "Data",
+   "label": "Total Points Department"
+  },
+  {
+   "fieldname": "total_p\u00f6ints_cumulated",
+   "fieldtype": "Data",
+   "label": "Total P\u00f6ints Cumulated"
+  },
+  {
+   "fieldname": "total_points_cumulated",
+   "fieldtype": "Data",
+   "label": "Total Points Cumulated"
+  },
+  {
+   "fieldname": "total_points_department_cumulated",
+   "fieldtype": "Data",
+   "label": "Total Points Department Cumulated"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-02 00:24:59.260353",
+ "modified": "2026-06-02 01:15:37.263401",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Pick",
- "naming_rule": "By script",
+ "naming_rule": "Random",
  "owner": "Administrator",
  "permissions": [
   {

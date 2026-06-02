@@ -15,6 +15,7 @@
   "open",
   "score_updated",
   "do_not_show",
+  "validated",
   "section_break_sqdq",
   "team_a",
   "info_a",
@@ -26,13 +27,7 @@
   "penalty_shootout_b",
   "column_break_pbnw",
   "team_b",
-  "info_b",
-  "section_break_yprg",
-  "coefficient",
-  "column_break_digg",
-  "factor",
-  "column_break_qpxp",
-  "column_break_juzb"
+  "info_b"
  ],
  "fields": [
   {
@@ -115,29 +110,6 @@
    "options": "Competition Round"
   },
   {
-   "fieldname": "section_break_yprg",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "factor",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Factor",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_digg",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_qpxp",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_juzb",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "column_break_lxrg",
    "fieldtype": "Column Break"
   },
@@ -159,13 +131,6 @@
    "label": "Info B"
   },
   {
-   "fieldname": "coefficient",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Coefficient",
-   "read_only": 1
-  },
-  {
    "default": "0",
    "fieldname": "score_updated",
    "fieldtype": "Check",
@@ -177,12 +142,18 @@
    "fieldname": "do_not_show",
    "fieldtype": "Check",
    "label": "Do not Show"
+  },
+  {
+   "default": "0",
+   "fieldname": "validated",
+   "fieldtype": "Check",
+   "label": "Validated"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-01 18:40:37.120659",
+ "modified": "2026-06-02 00:47:49.232069",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Game",

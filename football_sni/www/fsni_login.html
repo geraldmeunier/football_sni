@@ -6,7 +6,7 @@
 <div class="fsni-login-message">{{ fsni_login_security.login_message }}</div>
 {% endif %}
 {% if fsni_login_security and fsni_login_security.turnstile_enabled %}
-<div class="fsni-turnstile cf-turnstile" data-sitekey="{{ fsni_login_security.turnstile_site_key }}"></div>
+<div class="fsni-turnstile cf-turnstile" data-sitekey="{{ fsni_login_security.turnstile_site_key }}" data-theme="light"></div>
 {% endif %}
 {%- endmacro %}
 
