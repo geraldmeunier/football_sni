@@ -94,11 +94,21 @@ def get_departments(competition):
 	if not competition:
 		return []
 
-	return frappe.get_all(
-		'FNSI Department',
-		filters={'competition': competition},
-		fields=['name', 'team', 'department_owner'],
-		order_by='team asc',
+	return frappe.db.sql(
+		'''
+		select
+			department.name,
+			department.team,
+			department.department_owner,
+			coalesce(nullif(user.full_name, ''), user.name) as department_owner_full_name
+		from `tabFNSI Department` department
+		left join `tabUser` user
+			on user.name = department.department_owner
+		where department.competition = %(competition)s
+		order by department.team asc
+		''',
+		{'competition': competition},
+		as_dict=True,
 	)
 
 

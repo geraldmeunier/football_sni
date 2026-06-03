@@ -146,7 +146,7 @@
 						{% for department in departments %}
 						<tr data-department="{{ department.name }}">
 							<td class="fsni-strong">{{ department.team or department.name }}</td>
-							<td>{{ department.department_owner or "" }}</td>
+							<td>{{ department.department_owner_full_name or department.department_owner or "" }}</td>
 							<td class="fsni-local-action">
 								{% if owned_department and department.name == owned_department.name %}
 								<button class="btn btn-secondary" type="button" disabled>{{ _("Owner") }}</button>

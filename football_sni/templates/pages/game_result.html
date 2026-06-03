@@ -28,8 +28,10 @@
 .fsni-list-filters { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-start; margin: 0 0 16px; }
 .fsni-list-filter { flex: 0 1 220px; max-width: 240px; min-width: 180px; }
 .fsni-list-filter label { color: #526171; display: block; font-size: 12px; font-weight: 800; margin: 0 0 6px; text-transform: uppercase; }
+.fsni-table-wrap { max-height: calc(100vh - 24px); overflow: auto; }
 .fsni-results-table { border-collapse: collapse; font-size: 14px; min-width: 860px; width: 100%; }
 .fsni-results-table th { background: #e8f4f2; border-bottom: 1px solid #c7d1dc; color: #0f766e; font-size: 12px; font-weight: 800; padding: 10px 8px; text-align: center; text-transform: uppercase; white-space: nowrap; }
+.fsni-results-table thead th { position: sticky; top: 0; z-index: 3; }
 .fsni-results-table th.text-center, .fsni-results-table td.text-center { text-align: center; }
 .fsni-results-table td { border-bottom: 1px solid #dde3ea; color: #526171; padding: 10px 8px; vertical-align: middle; }
 .fsni-results-table a { color: inherit; text-decoration: none; }

@@ -15,9 +15,10 @@
 .fsni-segment a { background: #ffffff; border: 0; color: #526171; display: inline-flex; font-size: 13px; font-weight: 800; line-height: 1; padding: 10px 12px; text-decoration: none; }
 .fsni-segment a + a { border-left: 1px solid #c7d1dc; }
 .fsni-segment a.is-active { background: #0f766e; color: #ffffff; }
-.fsni-table-wrap { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); overflow-x: auto; }
+.fsni-table-wrap { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); max-height: calc(100vh - 24px); overflow: auto; }
 .fsni-picks-table { border-collapse: collapse; font-size: 14px; line-height: 1.4; min-width: 1480px; table-layout: auto; width: 100%; }
 .fsni-picks-table th { background: #e8f4f2; border-bottom: 1px solid #c7d1dc; color: #0f766e; font-size: 12px; font-weight: 800; letter-spacing: 0; padding: 12px 10px; text-align: left; text-transform: uppercase; white-space: nowrap; }
+.fsni-picks-table thead th { position: sticky; top: 0; z-index: 3; }
 .fsni-picks-table th.text-center { text-align: center; }
 .fsni-picks-table td { border-bottom: 1px solid #dde3ea; color: #526171; font-size: 14px; padding: 10px 10px; vertical-align: middle; }
 .fsni-picks-table tr:last-child td { border-bottom: 0; }

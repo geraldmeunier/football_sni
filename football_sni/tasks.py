@@ -724,6 +724,26 @@ def get_rankings_by_query(query, params):
 	return result
 
 
+def recalc_all_rankings():
+	games = frappe.db.sql(
+		"""
+		select game.name, game.game_id, game.competition, game.start_time
+		from `tabCompetition Game` game
+		inner join `tabCompetition` competition on competition.name = game.competition
+		where game.validated = 1
+			and competition.open = 1
+		order by game.start_time asc, cast(game.game_id as unsigned) asc, game.name asc
+		""",
+		as_dict=True,
+	)
+	results = []
+	for game in games:
+		result = update_game_ranking_placeholder(game)
+		results.append(f"Game #{game.game_id} ({game.name}): {result['rankings']} ranking(s)")
+	frappe.db.commit()
+	return results
+
+
 def notify_site_admins_about_pending_scores(games):
 	recipients = get_site_administrator_recipients()
 	if not recipients:
