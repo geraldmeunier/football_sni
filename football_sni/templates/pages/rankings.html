@@ -146,6 +146,8 @@
 						<tr>
 							<th>{{ _("Rank") }}</th>
 							<th class="fsni-user-head">{{ _("Player") }}</th>
+							<th class="fsni-user-head">{{ _("Country") }}</th>
+							<th class="fsni-user-head">{{ _("City") }}</th>
 							<th><span class="fsni-th-help" title="{{ _('Exact result: the predicted score exactly matches the final score.') }}">{{ _("ER") }}</span></th>
 							<th><span class="fsni-th-help" title="{{ _('Good difference: the predicted goal difference matches the final goal difference.') }}">{{ _("GD") }}</span></th>
 							<th><span class="fsni-th-help" title="{{ _('Good trend: the prediction has the correct winner, or correctly predicts a draw.') }}">{{ _("GT") }}</span></th>
@@ -164,6 +166,8 @@
 									<a class="fsni-user-link" href="{{ my_picks_link(row.user) }}">{{ row.user_full_name }}</a>
 								</div>
 							</td>
+							<td>{{ row.country or "" }}</td>
+							<td>{{ row.site or "" }}</td>
 							<td class="fsni-number-cell">{{ row.total_exact_result or "" }}</td>
 							<td class="fsni-number-cell">{{ row.total_good_difference or "" }}</td>
 							<td class="fsni-number-cell">{{ row.total_good_trend or "" }}</td>

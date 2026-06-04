@@ -198,6 +198,8 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 		select
 			ranking.user,
 			coalesce(nullif(user.full_name, ''), user.name) as user_full_name,
+			coalesce(site.country, '') as country,
+			coalesce(site.site, '') as site,
 			{ranking_field} as ranking,
 			{prior_ranking_field} as prior_ranking,
 			{points_expression} as total_points_cumulated,
@@ -230,6 +232,7 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 			), 0) as total_good_trend
 		from `tabCompetition Ranking` ranking
 		inner join `tabUser` user on user.name = ranking.user
+		left join `tabFNSI Site` site on site.name = user.location
 		left join `tabCompetition Pick` pick on pick.game = ranking.game and pick.user = ranking.user
 		{department_join}
 		where ranking.competition = %(competition)s
@@ -287,6 +290,8 @@ def get_open_game_players(competition, selected_game, filter_mode, current_user_
 		select distinct
 			pick.user,
 			coalesce(nullif(user.full_name, ''), user.name) as user_full_name,
+			coalesce(site.country, '') as country,
+			coalesce(site.site, '') as site,
 			0 as ranking,
 			0 as prior_ranking,
 			0 as total_points_cumulated,
@@ -295,6 +300,7 @@ def get_open_game_players(competition, selected_game, filter_mode, current_user_
 			0 as total_good_trend
 		from `tabCompetition Pick` pick
 		inner join `tabUser` user on user.name = pick.user
+		left join `tabFNSI Site` site on site.name = user.location
 		{' '.join(joins)}
 		where {' and '.join(conditions)}
 		order by user_full_name asc, pick.user asc
