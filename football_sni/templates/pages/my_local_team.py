@@ -3,6 +3,7 @@ from frappe import _
 from frappe.utils import get_email_address, get_url, validate_email_address
 from markupsafe import escape
 
+from football_sni.email_templates import get_or_create_email_template
 from football_sni.tasks import get_website_app_name
 from football_sni.website import add_user_settings_context, require_user_location
 
@@ -334,21 +335,11 @@ def ensure_team_email_template(template_name):
 		frappe.throw(_("Unknown local team email template."))
 
 	definition = TEAM_EMAIL_TEMPLATES[template_name]
-	if frappe.db.exists("Email Template", template_name):
-		template = frappe.get_doc("Email Template", template_name)
-	else:
-		template = frappe.get_doc({"doctype": "Email Template", "__newname": template_name})
-
-	template.subject = definition["subject"]
-	template.use_html = 1
-	template.response_html = definition["html"]
-
-	if template.is_new():
-		template.insert(ignore_permissions=True)
-	else:
-		template.save(ignore_permissions=True)
-
-	return template
+	return get_or_create_email_template(
+		template_name,
+		definition["subject"],
+		definition["html"],
+	)
 
 
 @frappe.whitelist()

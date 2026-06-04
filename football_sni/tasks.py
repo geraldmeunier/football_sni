@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import frappe
+from football_sni.email_templates import get_or_create_email_template
 from frappe.utils import (
 	add_to_date,
 	cint,
@@ -949,10 +950,8 @@ def get_available_picks(user):
 			cg.start_time,
 			cg.team_a,
 			team_a.image as team_a_image,
-			team_a.image_url as team_a_image_url,
 			cg.team_b,
 			team_b.image as team_b_image,
-			team_b.image_url as team_b_image_url,
 			cp.pick_a,
 			cp.pick_b
 		from `tabCompetition Pick` cp
@@ -978,8 +977,8 @@ def get_available_picks(user):
 	user_time_zone = get_user_time_zone(user)
 	for pick in picks:
 		pick.start_date = get_user_start_date(pick.start_time, user_time_zone)
-		pick.team_a_image_src = get_team_image_src(pick.team_a_image, pick.team_a_image_url)
-		pick.team_b_image_src = get_team_image_src(pick.team_b_image, pick.team_b_image_url)
+		pick.team_a_image_src = get_team_image_src(pick.team_a_image)
+		pick.team_b_image_src = get_team_image_src(pick.team_b_image)
 
 	return picks
 
@@ -1019,51 +1018,30 @@ def ensure_competition_team_images_are_public():
 	return updated
 
 
-def get_team_image_src(image, image_url):
-	image_src = image or image_url
-	if not image_src:
+def get_team_image_src(image):
+	if not image:
 		return ""
 
-	if image_src.startswith(("http://", "https://")):
-		return image_src
+	if image.startswith(("http://", "https://")):
+		return image
 
-	return get_url(image_src)
+	return get_url(image)
 
 
 def ensure_available_picks_email_template():
-	if frappe.db.exists("Email Template", AVAILABLE_PICKS_TEMPLATE):
-		template = frappe.get_doc("Email Template", AVAILABLE_PICKS_TEMPLATE)
-	else:
-		template = frappe.get_doc({"doctype": "Email Template", "__newname": AVAILABLE_PICKS_TEMPLATE})
-
-	template.subject = "Your picks are ready - time to make the call!"
-	template.use_html = 1
-	template.response_html = AVAILABLE_PICKS_EMAIL_HTML
-
-	if template.is_new():
-		template.insert(ignore_permissions=True)
-	else:
-		template.save(ignore_permissions=True)
-
-	return template
+	return get_or_create_email_template(
+		AVAILABLE_PICKS_TEMPLATE,
+		"Your picks are ready - time to make the call!",
+		AVAILABLE_PICKS_EMAIL_HTML,
+	)
 
 
 def ensure_pick_reminder_email_template():
-	if frappe.db.exists("Email Template", PICK_REMINDER_TEMPLATE):
-		template = frappe.get_doc("Email Template", PICK_REMINDER_TEMPLATE)
-	else:
-		template = frappe.get_doc({"doctype": "Email Template", "__newname": PICK_REMINDER_TEMPLATE})
-
-	template.subject = "Tiny nudge: your picks are still waiting"
-	template.use_html = 1
-	template.response_html = PICK_REMINDER_EMAIL_HTML
-
-	if template.is_new():
-		template.insert(ignore_permissions=True)
-	else:
-		template.save(ignore_permissions=True)
-
-	return template
+	return get_or_create_email_template(
+		PICK_REMINDER_TEMPLATE,
+		"Tiny nudge: your picks are still waiting",
+		PICK_REMINDER_EMAIL_HTML,
+	)
 
 
 AVAILABLE_PICKS_EMAIL_HTML = """
