@@ -56,7 +56,6 @@ def get_context(context):
 		context.filter_mode = FILTER_GENERAL
 	context.user_query_suffix = get_user_query_suffix(context.selected_user)
 	context.department_query_suffix = get_department_query_suffix(context.current_department)
-	context.pick_values = list(range(21))
 	context.picks = get_my_picks(context.user_time_zone, context.filter_mode, context.selected_user, context.current_department)
 
 

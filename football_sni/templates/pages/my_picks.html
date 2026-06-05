@@ -85,12 +85,6 @@
 					{% if current_department %}<input type="hidden" name="department" value="{{ current_department.name }}">{% endif %}
 				</form>
 			</div>
-			<datalist id="fsni-pick-values">
-				{% for value in pick_values %}
-				<option value="{{ value }}"></option>
-				{% endfor %}
-			</datalist>
-
 			{% if picks %}
 			<div class="fsni-table-wrap">
 				<table class="fsni-picks-table">
@@ -123,9 +117,9 @@
 							<td class="fsni-date fsni-date-col">{{ pick.display_date or "" }}</td>
 							<td class="fsni-team fsni-team-a">{{ pick.team_a or "" }}</td>
 							<td class="fsni-flag-cell">{% if pick.team_a_image_src %}<img src="{{ pick.team_a_image_src }}" alt="{{ pick.team_a or '' }}">{% endif %}</td>
-							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_a" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_a or '' }}" {% if not pick.can_edit %}disabled{% endif %}></td>
+							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_a" type="text" inputmode="numeric" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_a or '' }}" {% if not pick.can_edit %}disabled{% endif %}></td>
 							<td class="fsni-versus">:</td>
-							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_b" type="text" inputmode="numeric" list="fsni-pick-values" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_b or '' }}" {% if not pick.can_edit %}disabled{% endif %}></td>
+							<td class="fsni-pick-input-cell"><input class="form-control fsni-pick-input" data-field="pick_b" type="text" inputmode="numeric" maxlength="2" pattern="[0-9]*" value="{{ pick.pick_b or '' }}" {% if not pick.can_edit %}disabled{% endif %}></td>
 							<td class="fsni-flag-cell">{% if pick.team_b_image_src %}<img src="{{ pick.team_b_image_src }}" alt="{{ pick.team_b or '' }}">{% endif %}</td>
 							<td class="fsni-team fsni-team-b">{{ pick.team_b or "" }}</td>
 							<td class="fsni-score-cell">{{ pick.score_a_display }}</td>
