@@ -58,6 +58,15 @@
 			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-medal"></use></svg></span>
 			<span>Rankings</span>
 		{% if has_user_access %}</a>{% else %}</span>{% endif %}
+
+		{% if has_user_access %}
+		<a class="fsni-nav-link {% if active_page == 'team_rankings' %}active{% endif %}" href="/team_rankings">
+		{% else %}
+		<span class="fsni-nav-link fsni-disabled-link" aria-disabled="true">
+		{% endif %}
+			<span class="fsni-nav-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-users"></use></svg></span>
+			<span>Team Rankings</span>
+		{% if has_user_access %}</a>{% else %}</span>{% endif %}
 	</div>
 	<div class="fsni-nav-footer">
 		<a class="fsni-nav-link fsni-logout-link" href="/logout">

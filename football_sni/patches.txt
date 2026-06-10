@@ -7,5 +7,6 @@ football_sni.patches.rename_competition_pick_cumulated_fields
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
 football_sni.patches.backfill_competition_department_rankings
+football_sni.patches.backfill_competition_category_rankings
 football_sni.patches.add_user_rgpd_consent
 football_sni.patches.update_pick_email_templates_image_src

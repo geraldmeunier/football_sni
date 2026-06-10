@@ -21,6 +21,9 @@ from frappe.utils import (
 AVAILABLE_PICKS_TEMPLATE = "Available Picks"
 PICK_REMINDER_TEMPLATE = "Pick Reminder"
 SCORE_VALIDATION_RETRY_JOB_ID = "football_sni_validate_yesterday_competition_games_retry"
+CATEGORY_DEPARTMENT = "Department"
+CATEGORY_COUNTRY = "Country"
+CATEGORY_SITE = "Site"
 
 
 def all():
@@ -389,12 +392,137 @@ def get_factor(number_good_trends, number_players):
 	return factor
 
 
+def update_game_category_rankings(game):
+	game = get_ranking_game(game)
+	if not game:
+		return {"rankings": 0}
+
+	frappe.db.delete("Competition Category Ranking", {"game": game.name})
+	created = 0
+	for row in get_game_category_point_rows(game):
+		frappe.get_doc(
+			{
+				"doctype": "Competition Category Ranking",
+				"competition": game.competition,
+				"game": game.name,
+				"category_type": row.category_type,
+				"category": row.category,
+				"category_label": row.category_label,
+				"users_count": row.users_count,
+				"total_points": row.total_points,
+				"total_points_cumulated": 0,
+			}
+		).insert(ignore_permissions=True)
+		created += 1
+
+	update_game_category_cumulated_points(game)
+	prior_rankings = get_prior_category_rankings(game)
+	ranking_maps = get_category_rankings(game)
+	update_category_ranking_rows(game, ranking_maps, prior_rankings)
+	return {"rankings": created}
+
+
+def get_game_category_point_rows(game):
+	rows = []
+	rows.extend(get_game_department_category_point_rows(game))
+	rows.extend(get_game_country_category_point_rows(game))
+	rows.extend(get_game_site_category_point_rows(game))
+	return rows
+
+
+def get_game_department_category_point_rows(game):
+	return frappe.db.sql(
+		"""
+		select
+			%(category_type)s as category_type,
+			user_department.department as category,
+			coalesce(nullif(department.team, ''), department.name) as category_label,
+			count(*) as users_count,
+			coalesce(sum(coalesce(cast(pick.total_points as decimal(18,6)), 0)), 0) / count(*) as total_points
+		from `tabCompetition Pick` pick
+		inner join `tabFNSI User Department` user_department
+			on user_department.user = pick.user
+			and user_department.status = 'Validated'
+		inner join `tabFNSI Department` department
+			on department.name = user_department.department
+			and department.competition = pick.competition
+		where pick.game = %(game)s
+			and pick.competition = %(competition)s
+			and pick.not_played = 0
+		group by user_department.department, department.team, department.name
+		order by category_label asc, user_department.department asc
+		""",
+		{
+			"category_type": CATEGORY_DEPARTMENT,
+			"competition": game.competition,
+			"game": game.name,
+		},
+		as_dict=True,
+	)
+
+
+def get_game_country_category_point_rows(game):
+	return frappe.db.sql(
+		"""
+		select
+			%(category_type)s as category_type,
+			site.country as category,
+			site.country as category_label,
+			count(*) as users_count,
+			coalesce(sum(coalesce(cast(pick.total_points as decimal(18,6)), 0)), 0) / count(*) as total_points
+		from `tabCompetition Pick` pick
+		inner join `tabUser` user on user.name = pick.user
+		inner join `tabFNSI Site` site on site.name = user.location
+		where pick.game = %(game)s
+			and pick.competition = %(competition)s
+			and pick.not_played = 0
+			and coalesce(site.country, '') != ''
+		group by site.country
+		order by site.country asc
+		""",
+		{
+			"category_type": CATEGORY_COUNTRY,
+			"competition": game.competition,
+			"game": game.name,
+		},
+		as_dict=True,
+	)
+
+
+def get_game_site_category_point_rows(game):
+	return frappe.db.sql(
+		"""
+		select
+			%(category_type)s as category_type,
+			site.name as category,
+			coalesce(nullif(site.site, ''), site.name) as category_label,
+			count(*) as users_count,
+			coalesce(sum(coalesce(cast(pick.total_points as decimal(18,6)), 0)), 0) / count(*) as total_points
+		from `tabCompetition Pick` pick
+		inner join `tabUser` user on user.name = pick.user
+		inner join `tabFNSI Site` site on site.name = user.location
+		where pick.game = %(game)s
+			and pick.competition = %(competition)s
+			and pick.not_played = 0
+		group by site.name, site.site
+		order by category_label asc, site.name asc
+		""",
+		{
+			"category_type": CATEGORY_SITE,
+			"competition": game.competition,
+			"game": game.name,
+		},
+		as_dict=True,
+	)
+
+
 def update_game_ranking_placeholder(game):
 	game = get_ranking_game(game)
 	if not game:
 		return {"rankings": 0}
 
 	update_game_cumulated_points(game)
+	update_game_category_rankings(game)
 	prior_rankings = get_prior_rankings(game)
 	ranking_maps = get_game_ranking_maps(game)
 	department_prior_rankings = get_prior_department_rankings(game)
@@ -456,6 +584,38 @@ def update_game_cumulated_points(game):
 		"factor_department",
 	)
 	update_game_department_cumulated_points(game)
+
+
+def update_game_category_cumulated_points(game):
+	frappe.db.sql(
+		"""
+		update `tabCompetition Category Ranking` current_ranking
+		set current_ranking.total_points_cumulated = (
+			select coalesce(sum(coalesce(cast(category_ranking.total_points as decimal(18,6)), 0)), 0)
+			from `tabCompetition Category Ranking` category_ranking
+			inner join `tabCompetition Game` ranking_game on ranking_game.name = category_ranking.game
+			where category_ranking.competition = %(competition)s
+				and category_ranking.category_type = current_ranking.category_type
+				and category_ranking.category = current_ranking.category
+				and (
+					category_ranking.game = %(game)s
+					or (
+						ranking_game.validated = 1
+						and (
+							ranking_game.start_time < %(start_time)s
+							or %(start_time)s is null
+						)
+					)
+				)
+		)
+		where current_ranking.game = %(game)s
+		""",
+		{
+			"competition": game.competition,
+			"game": game.name,
+			"start_time": game.start_time,
+		},
+	)
 
 
 def update_game_cumulated_points_for_scope(game, cumulative_field, factor_field):
@@ -568,6 +728,19 @@ def get_prior_department_rankings(game):
 		fields=["department", "user", "ranking"],
 	)
 	return {(row.department, row.user): cint(row.ranking) for row in rows}
+
+
+def get_prior_category_rankings(game):
+	previous_game = get_previous_ranking_game(game)
+	if not previous_game:
+		return {}
+
+	rows = frappe.get_all(
+		"Competition Category Ranking",
+		filters={"competition": game.competition, "game": previous_game},
+		fields=["category_type", "category", "ranking"],
+	)
+	return {(row.category_type, row.category): cint(row.ranking) for row in rows}
 
 
 def get_previous_ranking_game(game):
@@ -685,6 +858,25 @@ def get_department_rankings(game):
 	return rankings
 
 
+def get_category_rankings(game):
+	rankings = {}
+	for category_type in (CATEGORY_DEPARTMENT, CATEGORY_COUNTRY, CATEGORY_SITE):
+		for category, ranking in get_category_rankings_by_query(
+			"""
+			select
+				category_ranking.category,
+				category_ranking.category_label,
+				coalesce(cast(category_ranking.total_points_cumulated as decimal(18,6)), 0) as score
+			from `tabCompetition Category Ranking` category_ranking
+			where category_ranking.game = %(game)s
+				and category_ranking.category_type = %(category_type)s
+			""",
+			{"game": game.name, "category_type": category_type},
+		).items():
+			rankings[(category_type, category)] = ranking
+	return rankings
+
+
 def update_department_ranking_rows(game, ranking_maps, prior_rankings):
 	for (department, user), ranking in ranking_maps.items():
 		frappe.db.set_value(
@@ -692,6 +884,19 @@ def update_department_ranking_rows(game, ranking_maps, prior_rankings):
 			f"{department} - {game.name} - {user}",
 			{
 				"prior_ranking": prior_rankings.get((department, user), 0),
+				"ranking": ranking,
+			},
+			update_modified=False,
+		)
+
+
+def update_category_ranking_rows(game, ranking_maps, prior_rankings):
+	for (category_type, category), ranking in ranking_maps.items():
+		frappe.db.set_value(
+			"Competition Category Ranking",
+			f"{category_type} - {category} - {game.name}",
+			{
+				"prior_ranking": prior_rankings.get((category_type, category), 0),
 				"ranking": ranking,
 			},
 			update_modified=False,
@@ -722,6 +927,26 @@ def get_rankings_by_query(query, params):
 			rank = index
 			prev_score = row.score
 		result[row.user] = rank
+	return result
+
+
+def get_category_rankings_by_query(query, params):
+	rows = frappe.db.sql(
+		f"""
+		{query}
+		order by score desc, category_label asc, category asc
+		""",
+		params,
+		as_dict=True,
+	)
+	result = {}
+	rank = 0
+	prev_score = None
+	for index, row in enumerate(rows, start=1):
+		if prev_score is None or row.score != prev_score:
+			rank = index
+			prev_score = row.score
+		result[row.category] = rank
 	return result
 
 
