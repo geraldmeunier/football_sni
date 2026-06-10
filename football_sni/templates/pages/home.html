@@ -31,8 +31,33 @@
 .fsni-home-settings-card .fsni-rgpd-check { align-items: flex-start; color: #162033; display: flex; font-size: 13px; font-weight: 750; gap: 8px; line-height: 1.35; margin: 12px 0 0; text-transform: none; }
 .fsni-home-settings-card .fsni-rgpd-check input { flex: 0 0 auto; margin-top: 2px; }
 .fsni-rgpd-link { color: #0f766e; display: inline-block; font-size: 13px; font-weight: 800; margin-top: 10px; }
+.fsni-home-content { align-items: start; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 32px; }
+.fsni-home-content .fsni-section { margin-top: 0; }
+.fsni-home-competitions { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
+.fsni-home-blog { min-width: 0; }
+.fsni-blog-list { display: flex; flex-direction: column; gap: 18px; }
+.fsni-blog-post { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); padding: 20px; }
+.fsni-blog-post h3 { color: #162033; font-size: 22px; font-weight: 800; letter-spacing: 0; line-height: 1.2; margin: 0 0 8px; overflow-wrap: anywhere; }
+.fsni-blog-meta { color: #697789; display: flex; flex-wrap: wrap; font-size: 13px; font-weight: 700; gap: 6px; line-height: 1.35; margin: 0 0 12px; }
+.fsni-blog-text { color: #526171; font-size: 14px; font-weight: 500; line-height: 1.6; }
+.fsni-blog-text :first-child, .fsni-comment-content :first-child { margin-top: 0; }
+.fsni-blog-text :last-child, .fsni-comment-content :last-child { margin-bottom: 0; }
+.fsni-blog-comments { border-top: 1px solid #dde3ea; margin-top: 16px; padding-top: 14px; }
+.fsni-blog-comments h4 { color: #162033; font-size: 14px; font-weight: 800; letter-spacing: 0; margin: 0 0 12px; text-transform: uppercase; }
+.fsni-blog-comment { background: #f6f8fb; border-radius: 8px; padding: 12px; }
+.fsni-blog-comment + .fsni-blog-comment { margin-top: 10px; }
+.fsni-comment-meta { color: #697789; display: flex; flex-wrap: wrap; font-size: 12px; font-weight: 750; gap: 6px; line-height: 1.35; margin: 0 0 8px; }
+.fsni-comment-content { color: #526171; font-size: 13px; font-weight: 500; line-height: 1.5; }
+.fsni-comment-form { border-top: 1px solid #dde3ea; display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 14px; }
+.fsni-comment-toggle { align-self: flex-start; }
+.fsni-comment-fields { display: flex; flex-direction: column; gap: 10px; }
+.fsni-comment-fields[hidden] { display: none; }
+.fsni-comment-fields textarea { min-height: 86px; resize: vertical; }
+.fsni-comment-form-footer { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
+.fsni-comment-status { color: #697789; font-size: 13px; font-weight: 700; min-height: 18px; }
+.fsni-comment-status.fsni-comment-error { color: #b42318; }
 body.fsni-modal-open { overflow: hidden; }
-@media (max-width: 900px) { .fsni-home-settings { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .fsni-home-settings, .fsni-home-content { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
@@ -83,68 +108,115 @@ body.fsni-modal-open { overflow: hidden; }
 			</form>
 		</section>
 
-		<section class="fsni-section" aria-labelledby="my-open-competitions">
-			<div class="fsni-section-head">
-				<h2 id="my-open-competitions">{{ _("Open competitions") }}</h2>
-				<span>{{ open_subscribed | length }}</span>
-			</div>
-			<div class="fsni-card-grid">
-				{% for competition in open_subscribed %}
-				<div class="fsni-competition-card{% if not has_user_access %} fsni-disabled-card{% endif %}" {% if not has_user_access %}aria-disabled="true"{% endif %}>
-					{% include "templates/includes/fsni_competition_image.html" %}
-					<div class="fsni-card-copy">
-						<p>{{ _("Playing now") }}</p>
-						<h3>{{ competition.title }}</h3>
+		<div class="fsni-home-content">
+			<div class="fsni-home-competitions">
+				<section class="fsni-section" aria-labelledby="my-open-competitions">
+					<div class="fsni-section-head">
+						<h2 id="my-open-competitions">{{ _("My open competitions") }}</h2>
+						<span>{{ open_subscribed | length }}</span>
 					</div>
-				</div>
-				{% else %}
-				<p class="fsni-empty">{{ _("You are not playing an open competition yet.") }}</p>
-				{% endfor %}
-			</div>
-		</section>
+					<div class="fsni-card-grid">
+						{% for competition in open_subscribed %}
+						<div class="fsni-competition-card{% if not has_user_access %} fsni-disabled-card{% endif %}" {% if not has_user_access %}aria-disabled="true"{% endif %}>
+							{% include "templates/includes/fsni_competition_image.html" %}
+							<div class="fsni-card-copy">
+								<p>{{ _("Playing now") }}</p>
+								<h3>{{ competition.title }}</h3>
+							</div>
+						</div>
+						{% else %}
+						<p class="fsni-empty">{{ _("You are not playing an open competition yet.") }}</p>
+						{% endfor %}
+					</div>
+				</section>
 
-		<section class="fsni-section" aria-labelledby="available-competitions">
-			<div class="fsni-section-head">
-				<h2 id="available-competitions">{{ _("Join a competition") }}</h2>
-				<span>{{ open_available | length }}</span>
-			</div>
-			<div class="fsni-card-grid">
-				{% for competition in open_available %}
-				<article class="fsni-competition-card fsni-play-card" data-competition="{{ competition.name }}">
-					{% include "templates/includes/fsni_competition_image.html" %}
-					<div class="fsni-card-copy">
-						<p>{{ _("Open") }}</p>
-						<h3>{{ competition.title }}</h3>
+				<section class="fsni-section" aria-labelledby="available-competitions">
+					<div class="fsni-section-head">
+						<h2 id="available-competitions">{{ _("Available competitions") }}</h2>
+						<span>{{ open_available | length }}</span>
 					</div>
-					<button class="btn btn-primary fsni-play-button" type="button" data-competition="{{ competition.name }}" {% if not has_user_access %}disabled{% endif %}>
-						{{ _("Play") }}
-					</button>
-				</article>
-				{% else %}
-				<p class="fsni-empty">{{ _("No new open competition is available right now.") }}</p>
-				{% endfor %}
-			</div>
-		</section>
+					<div class="fsni-card-grid">
+						{% for competition in open_available %}
+						<article class="fsni-competition-card fsni-play-card" data-competition="{{ competition.name }}">
+							{% include "templates/includes/fsni_competition_image.html" %}
+							<div class="fsni-card-copy">
+								<p>{{ _("Open") }}</p>
+								<h3>{{ competition.title }}</h3>
+							</div>
+							<button class="btn btn-primary fsni-play-button" type="button" data-competition="{{ competition.name }}" {% if not has_user_access %}disabled{% endif %}>
+								{{ _("Play") }}
+							</button>
+						</article>
+						{% else %}
+						<p class="fsni-empty">{{ _("No new open competition is available right now.") }}</p>
+						{% endfor %}
+					</div>
+				</section>
 
-		<section class="fsni-section" aria-labelledby="past-competitions">
-			<div class="fsni-section-head">
-				<h2 id="past-competitions">{{ _("Past competitions") }}</h2>
-				<span>{{ past | length }}</span>
-			</div>
-			<div class="fsni-card-grid">
-				{% for competition in past %}
-				{% if has_user_access %}<a class="fsni-competition-card" href="/rankings?competition={{ competition.url_name }}">{% else %}<div class="fsni-competition-card fsni-disabled-card" aria-disabled="true">{% endif %}
-					{% include "templates/includes/fsni_competition_image.html" %}
-					<div class="fsni-card-copy">
-						<p>{{ _("Final rankings") }}</p>
-						<h3>{{ competition.title }}</h3>
+				<section class="fsni-section" aria-labelledby="past-competitions">
+					<div class="fsni-section-head">
+						<h2 id="past-competitions">{{ _("Past competitions") }}</h2>
+						<span>{{ past | length }}</span>
 					</div>
-				{% if has_user_access %}</a>{% else %}</div>{% endif %}
-				{% else %}
-				<p class="fsni-empty">{{ _("Past competitions will appear here.") }}</p>
-				{% endfor %}
+					<div class="fsni-card-grid">
+						{% for competition in past %}
+						{% if has_user_access %}<a class="fsni-competition-card" href="/rankings?competition={{ competition.url_name }}">{% else %}<div class="fsni-competition-card fsni-disabled-card" aria-disabled="true">{% endif %}
+							{% include "templates/includes/fsni_competition_image.html" %}
+							<div class="fsni-card-copy">
+								<p>{{ _("Final rankings") }}</p>
+								<h3>{{ competition.title }}</h3>
+							</div>
+						{% if has_user_access %}</a>{% else %}</div>{% endif %}
+						{% else %}
+						<p class="fsni-empty">{{ _("Past competitions will appear here.") }}</p>
+						{% endfor %}
+					</div>
+				</section>
 			</div>
-		</section>
+
+			<aside class="fsni-home-blog" aria-labelledby="home-blog-posts">
+				<section class="fsni-section">
+					<div class="fsni-section-head">
+						<h2 id="home-blog-posts">{{ _("Blog") }}</h2>
+						<span>{{ blog_posts | length }}</span>
+					</div>
+					<div class="fsni-blog-list">
+						{% for post in blog_posts %}
+						<article class="fsni-blog-post">
+							<h3>{{ post.title }}</h3>
+							<p class="fsni-blog-meta"><span>{{ post.display_date }}</span><span>&middot;</span><span>{{ post.author }}</span></p>
+							{% if post.text %}<div class="fsni-blog-text">{{ post.text | safe }}</div>{% endif %}
+							<div class="fsni-blog-comments">
+								<h4>{{ _("Comments") }}</h4>
+								<div class="fsni-blog-comment-list" data-comment-list>
+									{% for comment in post.comments %}
+									<div class="fsni-blog-comment">
+										<p class="fsni-comment-meta"><span>{{ comment.display_date }}</span><span>&middot;</span><span>{{ comment.author }}</span></p>
+										<div class="fsni-comment-content">{{ comment.content | safe }}</div>
+									</div>
+									{% else %}
+									<p class="fsni-empty" data-empty-comments>{{ _("No comments yet.") }}</p>
+									{% endfor %}
+								</div>
+							</div>
+							<form class="fsni-comment-form" data-blog-comment-form data-post="{{ post.name }}">
+								<button class="btn btn-secondary fsni-comment-toggle" type="button" data-comment-toggle aria-expanded="false" aria-controls="fsni-comment-fields-{{ loop.index }}">{{ _("Add a comment") }}</button>
+								<div class="fsni-comment-fields" id="fsni-comment-fields-{{ loop.index }}" data-comment-fields hidden>
+									<textarea class="form-control" id="fsni-comment-{{ loop.index }}" maxlength="2000" name="content" required></textarea>
+									<div class="fsni-comment-form-footer">
+										<span class="fsni-comment-status" data-comment-status></span>
+										<button class="btn btn-primary" type="submit">{{ _("Comment") }}</button>
+									</div>
+								</div>
+							</form>
+						</article>
+						{% else %}
+						<p class="fsni-empty">{{ _("No blog article is available yet.") }}</p>
+						{% endfor %}
+					</div>
+				</section>
+			</aside>
+		</div>
 	</main>
 </div>
 <div class="fsni-location-modal-backdrop" id="fsni-location-modal" aria-hidden="true">
@@ -310,6 +382,94 @@ frappe.ready(function () {
 			return;
 		}
 		saveSettings();
+	});
+
+	function addCommentToList(list, comment) {
+		var empty = list.querySelector('[data-empty-comments]');
+		if (empty) {
+			empty.remove();
+		}
+
+		var item = document.createElement('div');
+		item.className = 'fsni-blog-comment';
+
+		var meta = document.createElement('p');
+		meta.className = 'fsni-comment-meta';
+
+		var date = document.createElement('span');
+		date.textContent = comment.display_date || '';
+		var separator = document.createElement('span');
+		separator.innerHTML = '&middot;';
+		var author = document.createElement('span');
+		author.textContent = comment.author || '';
+		meta.appendChild(date);
+		meta.appendChild(separator);
+		meta.appendChild(author);
+
+		var content = document.createElement('div');
+		content.className = 'fsni-comment-content';
+		content.innerHTML = comment.content || '';
+
+		item.appendChild(meta);
+		item.appendChild(content);
+		list.insertBefore(item, list.firstChild);
+	}
+
+	document.querySelectorAll('[data-blog-comment-form]').forEach(function (commentForm) {
+		var toggle = commentForm.querySelector('[data-comment-toggle]');
+		var fields = commentForm.querySelector('[data-comment-fields]');
+		if (toggle && fields) {
+			toggle.addEventListener('click', function () {
+				var isHidden = fields.hasAttribute('hidden');
+				fields.toggleAttribute('hidden', !isHidden);
+				toggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+				if (isHidden) {
+					var textarea = fields.querySelector('textarea[name="content"]');
+					if (textarea) {
+						textarea.focus();
+					}
+				}
+			});
+		}
+
+		commentForm.addEventListener('submit', function (event) {
+			event.preventDefault();
+			var textarea = commentForm.querySelector('textarea[name="content"]');
+			var submitButton = commentForm.querySelector('button[type="submit"]');
+			var commentStatus = commentForm.querySelector('[data-comment-status]');
+			var content = textarea.value.trim();
+			if (!content) {
+				textarea.focus();
+				return;
+			}
+
+			commentStatus.classList.remove('fsni-comment-error');
+			commentStatus.textContent = __('Saving...');
+			submitButton.disabled = true;
+			frappe.call({
+				method: 'football_sni.website.add_blog_comment',
+				args: { post: commentForm.dataset.post, content: content },
+				callback: function (response) {
+					submitButton.disabled = false;
+					if (!response.message) {
+						commentStatus.textContent = '';
+						return;
+					}
+					var postCard = commentForm.closest('.fsni-blog-post');
+					var list = postCard && postCard.querySelector('[data-comment-list]');
+					if (list) {
+						addCommentToList(list, response.message);
+					}
+					textarea.value = '';
+					commentStatus.textContent = __('Saved');
+				},
+				error: function () {
+					submitButton.disabled = false;
+					commentStatus.classList.add('fsni-comment-error');
+					commentStatus.textContent = __('The comment could not be saved.');
+				},
+			});
+		});
 	});
 });
 </script>

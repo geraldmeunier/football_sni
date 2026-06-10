@@ -3,7 +3,7 @@ from urllib.parse import quote
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import cint, get_system_timezone
+from frappe.utils import cint, formatdate, get_system_timezone, is_markdown, markdown
 from frappe.utils.html_utils import sanitize_html
 from frappe.utils.momentjs import get_all_timezones
 from markupsafe import Markup
@@ -146,6 +146,125 @@ def get_competition_cards(user=None):
 	}
 
 
+def get_blog_posts(limit=5, comments_limit=3):
+	if not frappe.db.exists("DocType", "Blog Post"):
+		return []
+
+	posts = frappe.get_all(
+		"Blog Post",
+		filters={"published": 1},
+		fields=[
+			"name",
+			"title",
+			"published_on",
+			"blogger",
+			"blog_intro",
+			"content",
+			"route",
+			"creation",
+		],
+		order_by="published_on desc, creation desc",
+		limit_page_length=limit,
+	)
+	if not posts:
+		return []
+
+	comments_by_post = get_blog_comments_by_post([post.name for post in posts], comments_limit)
+	for post in posts:
+		post.author = post.blogger or _("Unknown author")
+		post.display_date = formatdate(post.published_on or post.creation)
+		post.text = render_blog_html(post.content or post.blog_intro or "")
+		post.comments = comments_by_post.get(post.name, [])
+
+	return posts
+
+
+def get_blog_comments_by_post(post_names, comments_limit=3):
+	if not post_names or not frappe.db.exists("DocType", "Comment"):
+		return {}
+
+	comments = frappe.get_all(
+		"Comment",
+		filters={
+			"reference_doctype": "Blog Post",
+			"reference_name": ["in", post_names],
+			"comment_type": "Comment",
+		},
+		fields=[
+			"name",
+			"reference_name",
+			"comment_by",
+			"comment_email",
+			"content",
+			"creation",
+		],
+		order_by="creation desc",
+	)
+
+	comments_by_post = {}
+	for comment in comments:
+		post_comments = comments_by_post.setdefault(comment.reference_name, [])
+		if len(post_comments) >= comments_limit:
+			continue
+		post_comments.append(format_blog_comment(comment))
+
+	return comments_by_post
+
+
+def render_blog_html(content):
+	if not content:
+		return ""
+	if is_markdown(content):
+		content = markdown(content)
+	return Markup(sanitize_html(content, always_sanitize=True))
+
+
+def get_comment_author(user=None):
+	user = user or frappe.session.user
+	if user == "Guest":
+		return _("Anonymous")
+	return frappe.db.get_value("User", user, "full_name") or user
+
+
+def format_blog_comment(comment):
+	return {
+		"author": comment.comment_by or comment.comment_email or _("Anonymous"),
+		"display_date": formatdate(comment.creation),
+		"content": render_blog_html(comment.content or ""),
+	}
+
+
+@frappe.whitelist()
+@rate_limit(limit=20, seconds=3600)
+def add_blog_comment(post, content):
+	require_login("/home")
+
+	post = (post or "").strip()
+	content = (content or "").strip()
+	if not post or not frappe.db.exists("Blog Post", {"name": post, "published": 1}):
+		frappe.throw(_("Please select a valid blog article."))
+	if not content:
+		frappe.throw(_("Please enter a comment."))
+	if len(content) > 2000:
+		frappe.throw(_("Comment must not exceed 2000 characters."))
+
+	comment = frappe.get_doc(
+		{
+			"doctype": "Comment",
+			"comment_type": "Comment",
+			"reference_doctype": "Blog Post",
+			"reference_name": post,
+			"comment_email": frappe.session.user,
+			"comment_by": get_comment_author(),
+			"content": sanitize_html(content, always_sanitize=True),
+		}
+	)
+	comment.insert(ignore_permissions=True)
+	frappe.db.commit()
+
+	return format_blog_comment(comment)
+
+
 def get_context(context):
 	require_login("/home")
 	context.no_cache = 1
@@ -155,6 +274,7 @@ def get_context(context):
 	context.title = _("Home")
 	add_user_settings_context(context)
 	context.update(get_competition_cards())
+	context.blog_posts = get_blog_posts()
 
 
 @frappe.whitelist()
