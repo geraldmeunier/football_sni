@@ -39,6 +39,12 @@
 .fsni-blog-post { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; box-shadow: 0 10px 28px rgba(22, 32, 51, 0.08); padding: 20px; }
 .fsni-blog-post h3 { color: #162033; font-size: 22px; font-weight: 800; letter-spacing: 0; line-height: 1.2; margin: 0 0 8px; overflow-wrap: anywhere; }
 .fsni-blog-meta { color: #697789; display: flex; flex-wrap: wrap; font-size: 13px; font-weight: 700; gap: 6px; line-height: 1.35; margin: 0 0 12px; }
+.fsni-blog-actions { align-items: center; display: flex; gap: 10px; margin: 0 0 14px; }
+.fsni-like-button { align-items: center; display: inline-flex; gap: 6px; min-height: 32px; }
+.fsni-like-button.liked { background: #fff1f2; border-color: #fda4af; color: #be123c; }
+.fsni-like-button .icon { height: 14px; width: 14px; }
+.fsni-like-button.liked .icon { fill: currentColor; }
+.fsni-like-count { font-weight: 800; min-width: 1ch; }
 .fsni-blog-text { color: #526171; font-size: 14px; font-weight: 500; line-height: 1.6; }
 .fsni-blog-text :first-child, .fsni-comment-content :first-child { margin-top: 0; }
 .fsni-blog-text :last-child, .fsni-comment-content :last-child { margin-bottom: 0; }
@@ -185,6 +191,13 @@ body.fsni-modal-open { overflow: hidden; }
 						<article class="fsni-blog-post">
 							<h3>{{ post.title }}</h3>
 							<p class="fsni-blog-meta"><span>{{ post.display_date }}</span><span>&middot;</span><span>{{ post.author }}</span></p>
+							<div class="fsni-blog-actions">
+								<button class="btn btn-secondary fsni-like-button {% if post.liked_by_current_user %}liked{% else %}not-liked{% endif %}" type="button" data-blog-like data-liked="{{ 1 if post.liked_by_current_user else 0 }}" data-post="{{ post.name }}" aria-pressed="{{ 'true' if post.liked_by_current_user else 'false' }}">
+									<svg class="icon icon-sm" aria-hidden="true"><use href="#icon-heart"></use></svg>
+									<span data-like-label>{{ _("Liked") if post.liked_by_current_user else _("Like") }}</span>
+									<span class="fsni-like-count" data-like-count>{{ post.like_count }}</span>
+								</button>
+							</div>
 							{% if post.text %}<div class="fsni-blog-text">{{ post.text | safe }}</div>{% endif %}
 							<div class="fsni-blog-comments">
 								<h4>{{ _("Comments") }}</h4>
@@ -414,6 +427,47 @@ frappe.ready(function () {
 		item.appendChild(content);
 		list.insertBefore(item, list.firstChild);
 	}
+
+	function updateLikeButton(button, liked) {
+		var count = button.querySelector('[data-like-count]');
+		var label = button.querySelector('[data-like-label]');
+		var currentCount = count ? parseInt(count.textContent, 10) || 0 : 0;
+		var wasLiked = button.dataset.liked === '1';
+		var nextCount = currentCount + (liked && !wasLiked ? 1 : 0) - (!liked && wasLiked ? 1 : 0);
+
+		button.dataset.liked = liked ? '1' : '0';
+		button.classList.toggle('liked', liked);
+		button.classList.toggle('not-liked', !liked);
+		button.setAttribute('aria-pressed', liked ? 'true' : 'false');
+		if (label) {
+			label.textContent = liked ? __('Liked') : __('Like');
+		}
+		if (count) {
+			count.textContent = Math.max(nextCount, 0);
+		}
+	}
+
+	document.querySelectorAll('[data-blog-like]').forEach(function (likeButton) {
+		likeButton.addEventListener('click', function () {
+			var shouldLike = likeButton.dataset.liked !== '1';
+			likeButton.disabled = true;
+			frappe.call({
+				method: 'frappe.desk.like.toggle_like',
+				quiet: true,
+				args: { doctype: 'Blog Post', name: likeButton.dataset.post, add: shouldLike ? 'Yes' : 'No' },
+				callback: function (response) {
+					likeButton.disabled = false;
+					if (response.exc) {
+						return;
+					}
+					updateLikeButton(likeButton, shouldLike);
+				},
+				error: function () {
+					likeButton.disabled = false;
+				},
+			});
+		});
+	});
 
 	document.querySelectorAll('[data-blog-comment-form]').forEach(function (commentForm) {
 		var toggle = commentForm.querySelector('[data-comment-toggle]');

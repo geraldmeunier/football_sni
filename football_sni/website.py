@@ -1,3 +1,4 @@
+import json
 from urllib.parse import quote
 
 import frappe
@@ -150,19 +151,23 @@ def get_blog_posts(limit=5, comments_limit=3):
 	if not frappe.db.exists("DocType", "Blog Post"):
 		return []
 
+	fields = [
+		"name",
+		"title",
+		"published_on",
+		"blogger",
+		"blog_intro",
+		"content",
+		"route",
+		"creation",
+	]
+	if frappe.db.has_column("Blog Post", "_liked_by"):
+		fields.append("_liked_by")
+
 	posts = frappe.get_all(
 		"Blog Post",
 		filters={"published": 1},
-		fields=[
-			"name",
-			"title",
-			"published_on",
-			"blogger",
-			"blog_intro",
-			"content",
-			"route",
-			"creation",
-		],
+		fields=fields,
 		order_by="published_on desc, creation desc",
 		limit_page_length=limit,
 	)
@@ -175,8 +180,20 @@ def get_blog_posts(limit=5, comments_limit=3):
 		post.display_date = formatdate(post.published_on or post.creation)
 		post.text = render_blog_html(post.content or post.blog_intro or "")
 		post.comments = comments_by_post.get(post.name, [])
+		post.liked_by = get_liked_by(post.get("_liked_by"))
+		post.like_count = len(post.liked_by)
+		post.liked_by_current_user = frappe.session.user in post.liked_by
 
 	return posts
+
+
+def get_liked_by(liked_by):
+	if not liked_by:
+		return []
+	try:
+		return json.loads(liked_by)
+	except (TypeError, ValueError):
+		return []
 
 
 def get_blog_comments_by_post(post_names, comments_limit=3):
