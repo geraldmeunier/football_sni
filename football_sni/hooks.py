@@ -158,7 +158,7 @@ scheduler_events = {
 		"football_sni.tasks.all"
 	],
 	"cron": {
-		"0 11 * * *": [
+		"30 8 * * *": [
 			"football_sni.tasks.validate_yesterday_competition_games"
 		],
 		"0 12 * * *": [
