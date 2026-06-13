@@ -1,7 +1,6 @@
 # Copyright (c) 2026, Gerald Meunier and contributors
 # For license information, please see license.txt
 
-from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import frappe
@@ -20,7 +19,7 @@ from frappe.utils import (
 
 AVAILABLE_PICKS_TEMPLATE = "Available Picks"
 PICK_REMINDER_TEMPLATE = "Pick Reminder"
-SCORE_VALIDATION_RETRY_JOB_ID = "football_sni_validate_yesterday_competition_games_retry"
+PICK_REMINDER_UPCOMING_DAYS = 3
 CATEGORY_DEPARTMENT = "Department"
 CATEGORY_COUNTRY = "Country"
 CATEGORY_SITE = "Site"
@@ -61,15 +60,13 @@ def close_competition_games_before_start():
 	return len(games)
 
 
-def validate_yesterday_competition_games(is_retry=False):
-	games = get_unvalidated_yesterday_competition_games()
+def validate_score_updated_competition_games():
+	games = get_unvalidated_score_updated_competition_games()
 	if not games:
 		return {"validated": 0, "pending_scores": 0}
 
 	pending_games = [game for game in games if is_score_pending(game)]
 	if pending_games:
-		notify_site_admins_about_pending_scores(pending_games)
-		schedule_competition_game_validation_retry()
 		return {"validated": 0, "pending_scores": len(pending_games)}
 
 	validated = 0
@@ -80,8 +77,12 @@ def validate_yesterday_competition_games(is_retry=False):
 	return {"validated": validated, "pending_scores": 0}
 
 
-def get_unvalidated_yesterday_competition_games():
-	rows = frappe.db.sql(
+def validate_yesterday_competition_games(is_retry=False):
+	return validate_score_updated_competition_games()
+
+
+def get_unvalidated_score_updated_competition_games():
+	return frappe.db.sql(
 		"""
 		select
 			cg.name,
@@ -95,22 +96,11 @@ def get_unvalidated_yesterday_competition_games():
 		from `tabCompetition Game` cg
 		inner join `tabCompetition` c on c.name = cg.competition
 		where cg.validated = 0
-			and cg.start_time is not null
+			and cg.score_updated = 1
 		order by cg.start_time, cg.name
 		""",
 		as_dict=True,
 	)
-
-	games = []
-	for game in rows:
-		time_zone = get_competition_time_zone(game.time_zone)
-		start_datetime = convert_utc_to_timezone(get_datetime(game.start_time), time_zone)
-		yesterday = datetime.now(ZoneInfo(time_zone)).date() - timedelta(days=1)
-		if start_datetime.date() == yesterday:
-			game.time_zone = time_zone
-			games.append(game)
-
-	return games
 
 
 def get_competition_time_zone(time_zone=None):
@@ -970,66 +960,6 @@ def recalc_all_rankings():
 	return results
 
 
-def notify_site_admins_about_pending_scores(games):
-	recipients = get_site_administrator_recipients()
-	if not recipients:
-		return
-
-	lines = []
-	for game in games:
-		lines.append(
-			f"<li><strong>{frappe.utils.escape_html(game.name)}</strong> "
-			f"({frappe.utils.escape_html(game.competition)}, {frappe.utils.escape_html(game.round or '')})</li>"
-		)
-
-	frappe.sendmail(
-		recipients=recipients,
-		subject="Football SNI - scores still pending",
-		message=(
-			"<p>The daily competition validation could not run because some games from yesterday "
-			"do not have updated scores yet.</p>"
-			f"<ul>{''.join(lines)}</ul>"
-			"<p>The validation job has been scheduled again in 30 minutes.</p>"
-		),
-		delayed=False,
-	)
-
-
-def get_site_administrator_recipients():
-	users = frappe.get_all(
-		"Has Role",
-		filters={"role": "System Manager", "parenttype": "User"},
-		pluck="parent",
-	)
-	recipients = []
-	for user in users:
-		user_row = frappe.db.get_value("User", user, ["email", "enabled"])
-		if not user_row:
-			continue
-		email, enabled = user_row
-		if enabled and email:
-			recipients.append(email)
-	return sorted(set(recipients))
-
-
-def schedule_competition_game_validation_retry():
-	from frappe.utils.background_jobs import get_queue
-
-	queue = get_queue("short")
-	queue.enqueue_in(
-		timedelta(minutes=30),
-		"frappe.utils.background_jobs.execute_job",
-		site=frappe.local.site,
-		user=frappe.session.user,
-		method="football_sni.tasks.validate_yesterday_competition_games",
-		event=None,
-		job_name="football_sni.tasks.validate_yesterday_competition_games",
-		kwargs={"is_retry": True},
-		is_async=True,
-		job_id=SCORE_VALIDATION_RETRY_JOB_ID,
-	)
-
-
 def create_new_subscription_picks():
 	subscriptions = frappe.get_all(
 		"Competition Subscription",
@@ -1093,9 +1023,13 @@ def get_users_with_incomplete_open_picks():
 		"""
 		select distinct cp.user
 		from `tabCompetition Pick` cp
+		inner join `tabCompetition Game` cg on cg.name = cp.game
 		inner join `tabUser` user on user.name = cp.user
 		where cp.open = 1
 			and user.enabled = 1
+			and cg.start_time is not null
+			and cg.start_time >= %(start_time_from)s
+			and cg.start_time <= %(start_time_to)s
 			and (
 				cp.pick_a is null
 				or cp.pick_a = ''
@@ -1105,8 +1039,17 @@ def get_users_with_incomplete_open_picks():
 				or cp.pick_b = 'null'
 			)
 		order by cp.user
-		"""
+		""",
+		get_pick_reminder_window_params(),
 	)
+
+
+def get_pick_reminder_window_params():
+	start_time_from = now_datetime()
+	return {
+		"start_time_from": start_time_from,
+		"start_time_to": add_to_date(start_time_from, days=PICK_REMINDER_UPCOMING_DAYS),
+	}
 
 
 def alert_new_picks_to_input(user):
@@ -1137,7 +1080,7 @@ def alert_new_picks_to_input(user):
 
 
 def send_pick_reminder_to_input(user):
-	picks = get_available_picks(user)
+	picks = get_available_picks(user, upcoming_days=PICK_REMINDER_UPCOMING_DAYS)
 	if not picks:
 		return
 
@@ -1163,7 +1106,22 @@ def send_pick_reminder_to_input(user):
 	)
 
 
-def get_available_picks(user):
+def get_available_picks(user, upcoming_days=None):
+	params = {"user": user}
+	start_time_filter = ""
+	if upcoming_days is not None:
+		start_time_from = now_datetime()
+		params.update(
+			{
+				"start_time_from": start_time_from,
+				"start_time_to": add_to_date(start_time_from, days=upcoming_days),
+			}
+		)
+		start_time_filter = """
+			and cg.start_time is not null
+			and cg.start_time >= %(start_time_from)s
+			and cg.start_time <= %(start_time_to)s"""
+
 	picks = frappe.db.sql(
 		"""
 		select
@@ -1185,6 +1143,7 @@ def get_available_picks(user):
 		left join `tabCompetition Team` team_b on team_b.name = cg.team_b
 		where cp.user = %(user)s
 			and cp.open = 1
+			{start_time_filter}
 			and (
 				cp.pick_a is null
 				or cp.pick_a = ''
@@ -1194,8 +1153,8 @@ def get_available_picks(user):
 				or cp.pick_b = 'null'
 			)
 		order by cg.start_time, cg.game_id
-		""",
-		{"user": user},
+		""".format(start_time_filter=start_time_filter),
+		params,
 		as_dict=True,
 	)
 
@@ -1262,11 +1221,18 @@ def ensure_available_picks_email_template():
 
 
 def ensure_pick_reminder_email_template():
-	return get_or_create_email_template(
+	subject = "Tiny nudge: your next 3 days of picks are waiting"
+	template = get_or_create_email_template(
 		PICK_REMINDER_TEMPLATE,
-		"Tiny nudge: your picks are still waiting",
+		subject,
 		PICK_REMINDER_EMAIL_HTML,
 	)
+	if template.subject != subject or not template.use_html or template.response_html != PICK_REMINDER_EMAIL_HTML:
+		template.subject = subject
+		template.use_html = 1
+		template.response_html = PICK_REMINDER_EMAIL_HTML
+		template.save(ignore_permissions=True)
+	return template
 
 
 AVAILABLE_PICKS_EMAIL_HTML = """
@@ -1335,7 +1301,7 @@ PICK_REMINDER_EMAIL_HTML = """
 
 		<div style="padding: 22px;">
 			<p style="font-size: 16px; margin: 0 0 10px;">Hey {{ user }},</p>
-			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">A few open picks are still waiting for your genius. Give them a score, trust the instinct, and let the leaderboard drama begin.</p>
+			<p style="color: #526171; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">A few open picks for games in the next 3 days are still waiting for your genius. Give them a score, trust the instinct, and let the leaderboard drama begin.</p>
 
 			<p style="margin: 0 0 22px;">
 				<a href="{{ my_picks_url }}" style="background: #0f766e; border-radius: 8px; color: #ffffff; display: inline-block; font-weight: 700; padding: 10px 14px; text-decoration: none;">Complete My Picks</a>
