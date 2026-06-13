@@ -1024,9 +1024,13 @@ def get_users_with_incomplete_open_picks():
 		select distinct cp.user
 		from `tabCompetition Pick` cp
 		inner join `tabCompetition Game` cg on cg.name = cp.game
+		inner join `tabCompetition Subscription` subscription
+			on subscription.user = cp.user
+			and subscription.competition = cp.competition
 		inner join `tabUser` user on user.name = cp.user
 		where cp.open = 1
 			and user.enabled = 1
+			and coalesce(subscription.stop_subscription, 0) = 0
 			and cg.start_time is not null
 			and cg.start_time >= %(start_time_from)s
 			and cg.start_time <= %(start_time_to)s
@@ -1080,7 +1084,11 @@ def alert_new_picks_to_input(user):
 
 
 def send_pick_reminder_to_input(user):
-	picks = get_available_picks(user, upcoming_days=PICK_REMINDER_UPCOMING_DAYS)
+	picks = get_available_picks(
+		user,
+		upcoming_days=PICK_REMINDER_UPCOMING_DAYS,
+		require_active_subscription=True,
+	)
 	if not picks:
 		return
 
@@ -1106,9 +1114,18 @@ def send_pick_reminder_to_input(user):
 	)
 
 
-def get_available_picks(user, upcoming_days=None):
+def get_available_picks(user, upcoming_days=None, require_active_subscription=False):
 	params = {"user": user}
 	start_time_filter = ""
+	subscription_join = ""
+	subscription_filter = ""
+	if require_active_subscription:
+		subscription_join = """
+		inner join `tabCompetition Subscription` subscription
+			on subscription.user = cp.user
+			and subscription.competition = cp.competition"""
+		subscription_filter = """
+			and coalesce(subscription.stop_subscription, 0) = 0"""
 	if upcoming_days is not None:
 		start_time_from = now_datetime()
 		params.update(
@@ -1139,11 +1156,13 @@ def get_available_picks(user, upcoming_days=None):
 			cp.pick_b
 		from `tabCompetition Pick` cp
 		left join `tabCompetition Game` cg on cg.name = cp.game
+		{subscription_join}
 		left join `tabCompetition Team` team_a on team_a.name = cg.team_a
 		left join `tabCompetition Team` team_b on team_b.name = cg.team_b
 		where cp.user = %(user)s
 			and cp.open = 1
 			{start_time_filter}
+			{subscription_filter}
 			and (
 				cp.pick_a is null
 				or cp.pick_a = ''
@@ -1153,7 +1172,11 @@ def get_available_picks(user, upcoming_days=None):
 				or cp.pick_b = 'null'
 			)
 		order by cg.start_time, cg.game_id
-		""".format(start_time_filter=start_time_filter),
+		""".format(
+			start_time_filter=start_time_filter,
+			subscription_join=subscription_join,
+			subscription_filter=subscription_filter,
+		),
 		params,
 		as_dict=True,
 	)
