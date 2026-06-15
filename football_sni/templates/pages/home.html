@@ -428,12 +428,14 @@ frappe.ready(function () {
 		list.insertBefore(item, list.firstChild);
 	}
 
-	function updateLikeButton(button, liked) {
+	function updateLikeButton(button, liked, likeCount) {
 		var count = button.querySelector('[data-like-count]');
 		var label = button.querySelector('[data-like-label]');
 		var currentCount = count ? parseInt(count.textContent, 10) || 0 : 0;
 		var wasLiked = button.dataset.liked === '1';
-		var nextCount = currentCount + (liked && !wasLiked ? 1 : 0) - (!liked && wasLiked ? 1 : 0);
+		var nextCount = typeof likeCount === 'number'
+			? likeCount
+			: currentCount + (liked && !wasLiked ? 1 : 0) - (!liked && wasLiked ? 1 : 0);
 
 		button.dataset.liked = liked ? '1' : '0';
 		button.classList.toggle('liked', liked);
@@ -452,15 +454,16 @@ frappe.ready(function () {
 			var shouldLike = likeButton.dataset.liked !== '1';
 			likeButton.disabled = true;
 			frappe.call({
-				method: 'frappe.desk.like.toggle_like',
+				method: 'football_sni.website.toggle_blog_like',
 				quiet: true,
-				args: { doctype: 'Blog Post', name: likeButton.dataset.post, add: shouldLike ? 'Yes' : 'No' },
+				args: { post: likeButton.dataset.post, add: shouldLike ? 'Yes' : 'No' },
 				callback: function (response) {
 					likeButton.disabled = false;
 					if (response.exc) {
 						return;
 					}
-					updateLikeButton(likeButton, shouldLike);
+					var result = response.message || {};
+					updateLikeButton(likeButton, !!result.liked, result.like_count);
 				},
 				error: function () {
 					likeButton.disabled = false;

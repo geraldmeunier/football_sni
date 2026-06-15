@@ -252,6 +252,37 @@ def format_blog_comment(comment):
 
 
 @frappe.whitelist()
+@rate_limit(limit=120, seconds=3600)
+def toggle_blog_like(post, add):
+	require_login("/home")
+
+	post = (post or "").strip()
+	blog_post = frappe.db.get_value(
+		"Blog Post",
+		post,
+		["published", "disable_likes"],
+		as_dict=True,
+	)
+	if not blog_post or not cint(blog_post.published):
+		frappe.throw(_("Please select a valid blog article."))
+	if cint(blog_post.disable_likes):
+		frappe.throw(_("Likes are disabled for this blog article."))
+
+	add = "Yes" if add == "Yes" else "No"
+
+	from frappe.desk.like import _toggle_like
+
+	_toggle_like("Blog Post", post, add, frappe.session.user)
+	liked_by = get_liked_by(frappe.db.get_value("Blog Post", post, "_liked_by"))
+	frappe.db.commit()
+
+	return {
+		"liked": frappe.session.user in liked_by,
+		"like_count": len(liked_by),
+	}
+
+
+@frappe.whitelist()
 @rate_limit(limit=20, seconds=3600)
 def add_blog_comment(post, content):
 	require_login("/home")
