@@ -117,8 +117,25 @@ def is_score_pending(game):
 
 
 def validate_competition_game(game):
+	result = recalculate_competition_game(game)
+	if result["skipped"]:
+		return result
+
+	frappe.db.set_value(
+		"Competition Game",
+		game.name,
+		{"validated": 1},
+		update_modified=False,
+	)
+	return result
+
+
+def recalculate_competition_game(game):
 	score_a = parse_score(game.score_a)
 	score_b = parse_score(game.score_b)
+	if score_a is None or score_b is None:
+		return {"picks": 0, "rankings": 0, "skipped": 1}
+
 	coefficient = get_round_coefficient(game.competition, game.round)
 
 	picks = frappe.get_all(
@@ -146,14 +163,9 @@ def validate_competition_game(game):
 	update_game_factors(game.name)
 	update_game_site_factors(game)
 	update_game_department_factors(game)
-	update_game_ranking_placeholder(game)
+	ranking_result = update_game_ranking_placeholder(game)
 
-	frappe.db.set_value(
-		"Competition Game",
-		game.name,
-		{"validated": 1},
-		update_modified=False,
-	)
+	return {"picks": len(picks), "rankings": ranking_result["rankings"], "skipped": 0}
 
 
 def get_round_coefficient(competition, round_name):
@@ -958,6 +970,66 @@ def recalc_all_rankings():
 		results.append(f"Game #{game.game_id} ({game.name}): {result['rankings']} ranking(s)")
 	frappe.db.commit()
 	return results
+
+
+def recalc_all_points_factors_and_rankings(competition=None, commit=True):
+	games = get_recalculable_competition_games(competition=competition)
+	summary = {"games": 0, "picks": 0, "rankings": 0, "skipped": 0}
+	results = []
+
+	for game in games:
+		if is_score_pending(game):
+			summary["skipped"] += 1
+			results.append(f"Game #{game.game_id} ({game.name}): skipped, pending score")
+			continue
+
+		result = recalculate_competition_game(game)
+		frappe.db.set_value(
+			"Competition Game",
+			game.name,
+			{"validated": 1},
+			update_modified=False,
+		)
+		summary["games"] += 1
+		summary["picks"] += result["picks"]
+		summary["rankings"] += result["rankings"]
+		summary["skipped"] += result["skipped"]
+		results.append(
+			f"Game #{game.game_id} ({game.name}): "
+			f"{result['picks']} pick(s), {result['rankings']} ranking(s)"
+		)
+
+	if cint(commit):
+		frappe.db.commit()
+
+	return {"summary": summary, "results": results}
+
+
+def get_recalculable_competition_games(competition=None):
+	conditions = ["game.score_updated = 1"]
+	params = {}
+	if competition:
+		conditions.append("game.competition = %(competition)s")
+		params["competition"] = competition
+
+	return frappe.db.sql(
+		f"""
+		select
+			game.name,
+			game.game_id,
+			game.competition,
+			game.round,
+			game.start_time,
+			game.score_a,
+			game.score_b,
+			game.score_updated
+		from `tabCompetition Game` game
+		where {' and '.join(conditions)}
+		order by game.competition asc, game.start_time asc, cast(game.game_id as unsigned) asc, game.name asc
+		""",
+		params,
+		as_dict=True,
+	)
 
 
 def create_new_subscription_picks():
