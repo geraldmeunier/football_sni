@@ -552,7 +552,14 @@ def update_game_ranking_placeholder(game):
 		).insert(ignore_permissions=True)
 		created += 1
 
+	clear_rankings_cache()
 	return {"rankings": created}
+
+
+def clear_rankings_cache():
+	from football_sni.templates.pages.rankings import clear_rankings_cache as clear_cache
+
+	clear_cache()
 
 
 def get_ranking_game(game):

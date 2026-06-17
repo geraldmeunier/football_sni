@@ -4,7 +4,7 @@ import frappe
 from frappe import _
 
 from football_sni.templates.pages.game_result import format_number
-from football_sni.templates.pages.rankings import get_ranking_games, get_selected_game
+from football_sni.templates.pages.rankings import RANKINGS_CACHE_SECONDS, get_ranking_games, get_rankings_cache_key, get_selected_game
 from football_sni.website import add_user_settings_context, require_user_location
 
 
@@ -54,7 +54,17 @@ def get_team_rankings(selected_game, filter_mode):
 	if not frappe.db.table_exists("Competition Category Ranking"):
 		return []
 
-	rows = frappe.db.sql(
+	cache_key = get_team_rankings_cache_key(selected_game, filter_mode)
+	rows = frappe.cache().get_value(cache_key)
+	if rows is None:
+		rows = get_team_ranking_rows(selected_game, filter_mode)
+		frappe.cache().set_value(cache_key, rows, expires_in_sec=RANKINGS_CACHE_SECONDS)
+
+	return prepare_team_ranking_rows(rows, selected_game, filter_mode)
+
+
+def get_team_ranking_rows(selected_game, filter_mode):
+	return frappe.db.sql(
 		"""
 		select
 			category_ranking.category,
@@ -78,13 +88,23 @@ def get_team_rankings(selected_game, filter_mode):
 		},
 		as_dict=True,
 	)
+
+
+def prepare_team_ranking_rows(rows, selected_game, filter_mode):
+	prepared_rows = []
 	for row in rows:
+		row = frappe._dict(row.copy())
 		row.total_points_raw = (row.total_points or 0) * (row.users_count or 0)
 		row.total_points_raw_display = format_number(row.total_points_raw, decimals=3)
 		row.points_display = format_number(row.total_points, decimals=3)
 		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=3)
 		row.game_results_url = get_game_results_url(selected_game, filter_mode, row)
-	return rows
+		prepared_rows.append(row)
+	return prepared_rows
+
+
+def get_team_rankings_cache_key(selected_game, filter_mode):
+	return get_rankings_cache_key("team_rows", selected_game.name, filter_mode)
 
 
 def get_game_results_url(selected_game, filter_mode, row):

@@ -81,6 +81,8 @@ def get_context(context):
 	)
 	context.list_filters = get_list_filters(context.result_game, context.filter_mode)
 	context.list_filter_options = get_list_filter_options(context.result_game)
+	context.sort_by = get_sort_by()
+	context.sort_order = get_sort_order()
 	context.picks = get_result_picks(
 		context.result_game,
 		context.filter_mode,
@@ -89,14 +91,19 @@ def get_context(context):
 		context.favorite_members,
 		context.only_favorites,
 		context.list_filters,
+		context.sort_by,
+		context.sort_order,
 	)
-	context.sort_by = get_sort_by()
-	context.sort_order = get_sort_order()
 	context.query_base = get_query_base(context)
 
 
 def get_closed_games():
-	return frappe.db.sql(
+	cache_key = get_game_result_cache_key("closed_games")
+	cached_games = frappe.cache().get_value(cache_key)
+	if cached_games is not None:
+		return cached_games
+
+	games = frappe.db.sql(
 		'''
 		select
 			game.name,
@@ -114,6 +121,8 @@ def get_closed_games():
 		''',
 		as_dict=True,
 	)
+	set_game_result_cache_value(cache_key, games)
+	return games
 
 
 def get_selected_game(games):
@@ -130,7 +139,12 @@ def get_result_game(game):
 	if not game:
 		return None
 
-	result_game = frappe.db.sql(
+	cache_key = get_game_result_cache_key("result_game", game)
+	result_game = frappe.cache().get_value(cache_key)
+	if result_game is not None:
+		return result_game
+
+	rows = frappe.db.sql(
 		'''
 		select
 			game.name,
@@ -160,13 +174,14 @@ def get_result_game(game):
 		{'game': game},
 		as_dict=True,
 	)
-	if not result_game:
+	if not rows:
 		return None
 
-	result_game = result_game[0]
+	result_game = rows[0]
 	result_game.team_a_image_src = get_team_image_src(result_game.team_a_image, result_game.team_a_image_url)
 	result_game.team_b_image_src = get_team_image_src(result_game.team_b_image, result_game.team_b_image_url)
 	result_game.has_penalty_shootout = result_game.penalty_shootout_a not in (None, '') and result_game.penalty_shootout_b not in (None, '')
+	set_game_result_cache_value(cache_key, result_game)
 	return result_game
 
 
@@ -241,6 +256,11 @@ def get_list_filter_options(result_game=None):
 	if not result_game:
 		return options
 
+	cache_key = get_game_result_cache_key("list_filter_options", result_game.name)
+	cached_options = frappe.cache().get_value(cache_key)
+	if cached_options is not None:
+		return cached_options
+
 	options.countries = frappe.db.sql_list(
 		'''
 		select distinct site.country
@@ -283,6 +303,7 @@ def get_list_filter_options(result_game=None):
 		{"game": result_game.name, "competition": result_game.competition},
 		as_dict=True,
 	)
+	set_game_result_cache_value(cache_key, options)
 	return options
 
 
@@ -308,10 +329,42 @@ def get_favorite_members(competition, user):
 	}
 
 
-def get_result_picks(result_game, filter_mode, current_user_site, current_department, favorite_members, only_favorites, list_filters=None):
+def get_result_picks(result_game, filter_mode, current_user_site, current_department, favorite_members, only_favorites, list_filters=None, sort_by=None, sort_order=None):
 	if not result_game:
 		return []
 
+	favorite_members = favorite_members or set()
+	if only_favorites and not favorite_members:
+		return []
+
+	sort_by = sort_by or get_sort_by()
+	sort_order = sort_order or get_sort_order()
+	cache_key = get_result_picks_cache_key(
+		result_game,
+		filter_mode,
+		current_user_site,
+		current_department,
+		list_filters,
+		sort_by,
+		sort_order,
+	)
+	rows = frappe.cache().get_value(cache_key)
+	if rows is None:
+		rows = get_result_pick_rows(
+			result_game,
+			filter_mode,
+			current_user_site,
+			current_department,
+			list_filters,
+			sort_by,
+			sort_order,
+		)
+		set_game_result_cache_value(cache_key, rows)
+
+	return prepare_result_picks(rows, favorite_members, only_favorites)
+
+
+def get_result_pick_rows(result_game, filter_mode, current_user_site, current_department, list_filters=None, sort_by=None, sort_order=None):
 	factor_field = f"pick.{FACTOR_FIELDS.get(filter_mode, 'factor')}"
 	total_points_field = f"pick.`{get_competition_pick_field(TOTAL_POINTS_FIELDS.get(filter_mode, 'total_points'), 'total_points')}`"
 	total_points_cumulated_field = f"pick.`{get_competition_pick_field(TOTAL_POINTS_CUMULATED_FIELDS.get(filter_mode, 'total_points_cumulated'))}`"
@@ -342,14 +395,8 @@ def get_result_picks(result_game, filter_mode, current_user_site, current_depart
 	if filter_mode == FILTER_GENERAL:
 		apply_general_list_filters(conditions, params, list_filters)
 
-	if only_favorites:
-		if not favorite_members:
-			return []
-		conditions.append('pick.user in %(favorite_members)s')
-		params['favorite_members'] = tuple(favorite_members)
-
-	sort_by = get_sort_by()
-	sort_order = get_sort_order()
+	sort_by = sort_by or get_sort_by()
+	sort_order = sort_order or get_sort_order()
 	sort_expression = SORT_FIELDS[sort_by].format(
 		factor_field=factor_field,
 		total_points_field=total_points_field,
@@ -357,7 +404,7 @@ def get_result_picks(result_game, filter_mode, current_user_site, current_depart
 	)
 	order_by = f'{sort_expression} {sort_order}, user_full_name asc, pick.user asc'
 
-	rows = frappe.db.sql(
+	return frappe.db.sql(
 		f'''
 		select
 			pick.name,
@@ -383,15 +430,21 @@ def get_result_picks(result_game, filter_mode, current_user_site, current_depart
 		as_dict=True,
 	)
 
+
+def prepare_result_picks(rows, favorite_members, only_favorites=False):
+	prepared_rows = []
 	for row in rows:
+		row = frappe._dict(row.copy())
+		if only_favorites and row.user not in favorite_members:
+			continue
 		row.is_favorite = row.user in favorite_members
 		row.points_display = format_number(row.points, decimals=0)
 		row.coefficient_display = format_number(row.coefficient, decimals=0)
 		row.factor_display = format_number(row.factor, decimals=3)
 		row.total_points_display = format_number(row.total_points, decimals=3)
 		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=3)
-
-	return rows
+		prepared_rows.append(row)
+	return prepared_rows
 
 
 def apply_general_list_filters(conditions, params, list_filters):
@@ -500,3 +553,32 @@ def toggle_favorite_member(competition, member, is_favorite=None):
 	frappe.db.commit()
 
 	return {'member': member, 'is_favorite': should_be_favorite}
+
+
+def get_game_result_cache_key(*parts):
+	from football_sni.templates.pages.rankings import get_rankings_cache_key
+
+	return get_rankings_cache_key("game_result", *parts)
+
+
+def set_game_result_cache_value(cache_key, value):
+	from football_sni.templates.pages.rankings import RANKINGS_CACHE_SECONDS
+
+	frappe.cache().set_value(cache_key, value, expires_in_sec=RANKINGS_CACHE_SECONDS)
+
+
+def get_result_picks_cache_key(result_game, filter_mode, current_user_site, current_department, list_filters=None, sort_by=None, sort_order=None):
+	department_name = current_department.name if current_department else ""
+	list_filters = list_filters or frappe._dict()
+	return get_game_result_cache_key(
+		"picks",
+		result_game.name,
+		filter_mode,
+		current_user_site if filter_mode == FILTER_SITE else "",
+		department_name if filter_mode == FILTER_DEPARTMENT else "",
+		list_filters.get("country") if filter_mode == FILTER_GENERAL else "",
+		list_filters.get("city") if filter_mode == FILTER_GENERAL else "",
+		list_filters.get("department") if filter_mode == FILTER_GENERAL else "",
+		sort_by or get_sort_by(),
+		sort_order or get_sort_order(),
+	)

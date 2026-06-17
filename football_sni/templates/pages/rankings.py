@@ -1,3 +1,5 @@
+import hashlib
+import json
 from urllib.parse import quote
 
 import frappe
@@ -12,11 +14,14 @@ from football_sni.templates.pages.game_result import (
 	get_current_department,
 	get_current_departments,
 	get_favorite_members,
-	get_list_filter_options,
+	get_list_filter_options as get_result_list_filter_options,
 	get_list_filters,
 )
 from football_sni.website import add_user_settings_context, get_current_user_location, require_user_location
 
+
+RANKINGS_CACHE_SECONDS = 10 * 60
+RANKINGS_CACHE_VERSION_KEY = "football_sni:rankings:cache_version"
 
 RANKING_FIELDS = {
 	FILTER_GENERAL: ("ranking", "prior_ranking", "total_points_cumulated"),
@@ -49,7 +54,7 @@ def get_context(context):
 	context.only_favorites = frappe.form_dict.get('favorites') in ('1', 'true', 'yes')
 	context.favorite_members = get_favorite_members(context.selected_competition, frappe.session.user)
 	context.list_filters = get_list_filters(context.selected_game, context.filter_mode)
-	context.list_filter_options = get_list_filter_options(context.selected_game)
+	context.list_filter_options = get_ranking_list_filter_options(context.selected_game)
 	context.rankings = get_rankings(
 		context.selected_competition,
 		context.selected_game,
@@ -64,6 +69,11 @@ def get_context(context):
 
 
 def get_ranking_games():
+	cache_key = get_rankings_cache_key("games")
+	cached_games = frappe.cache().get_value(cache_key)
+	if cached_games is not None:
+		return cached_games
+
 	validated_games = frappe.db.sql(
 		"""
 		select game.name, game.game_id, game.team_a, game.team_b, game.competition, game.start_time, game.validated
@@ -76,9 +86,10 @@ def get_ranking_games():
 		as_dict=True,
 	)
 	if validated_games:
+		frappe.cache().set_value(cache_key, validated_games, expires_in_sec=RANKINGS_CACHE_SECONDS)
 		return validated_games
 
-	return frappe.db.sql(
+	open_games = frappe.db.sql(
 		"""
 		select game.name, game.game_id, game.team_a, game.team_b, game.competition, game.start_time, game.validated
 		from `tabCompetition Game` game
@@ -89,6 +100,22 @@ def get_ranking_games():
 		""",
 		as_dict=True,
 	)
+	frappe.cache().set_value(cache_key, open_games, expires_in_sec=RANKINGS_CACHE_SECONDS)
+	return open_games
+
+
+def get_ranking_list_filter_options(selected_game):
+	if not selected_game or not selected_game.validated:
+		return get_result_list_filter_options(selected_game)
+
+	cache_key = get_rankings_cache_key("list_filters", selected_game.name)
+	cached_options = frappe.cache().get_value(cache_key)
+	if cached_options is not None:
+		return cached_options
+
+	options = get_result_list_filter_options(selected_game)
+	frappe.cache().set_value(cache_key, options, expires_in_sec=RANKINGS_CACHE_SECONDS)
+	return options
 
 
 def get_selected_game(games):
@@ -153,6 +180,30 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 		)
 
 	favorite_members = favorite_members or set()
+	cache_key = get_validated_rankings_cache_key(
+		competition,
+		selected_game,
+		filter_mode,
+		current_user_site,
+		current_department,
+		list_filters,
+	)
+	rows = frappe.cache().get_value(cache_key)
+	if rows is None:
+		rows = get_validated_ranking_rows(
+			competition,
+			selected_game,
+			filter_mode,
+			current_user_site,
+			current_department,
+			list_filters,
+		)
+		frappe.cache().set_value(cache_key, rows, expires_in_sec=RANKINGS_CACHE_SECONDS)
+
+	return prepare_ranking_rows(rows, favorite_members, only_favorites)
+
+
+def get_validated_ranking_rows(competition, selected_game, filter_mode, current_user_site, current_department, list_filters=None):
 	ranking_field_name, prior_ranking_field_name, cumulative_field = RANKING_FIELDS[filter_mode]
 	ranking_field = f"ranking.{ranking_field_name}"
 	prior_ranking_field = f"ranking.{prior_ranking_field_name}"
@@ -187,13 +238,7 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 	if filter_mode == FILTER_GENERAL and list_filters:
 		apply_general_list_filters(conditions, params, list_filters)
 
-	if only_favorites:
-		if not favorite_members:
-			return []
-		conditions.append("ranking.user in %(favorite_members)s")
-		params["favorite_members"] = tuple(favorite_members)
-
-	rows = frappe.db.sql(
+	return frappe.db.sql(
 		f"""
 		select
 			ranking.user,
@@ -203,37 +248,26 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 			{ranking_field} as ranking,
 			{prior_ranking_field} as prior_ranking,
 			{points_expression} as total_points_cumulated,
-			coalesce((
-				select sum(cp2.exact_result)
-				from `tabCompetition Pick` cp2
-				inner join `tabCompetition Game` cg2 on cg2.name = cp2.game
-				where cp2.competition = %(competition)s
-					and cp2.user = ranking.user
-					and cp2.not_played = 0
-					and cg2.validated = 1
-			), 0) as total_exact_result,
-			coalesce((
-				select sum(cp2.good_difference)
-				from `tabCompetition Pick` cp2
-				inner join `tabCompetition Game` cg2 on cg2.name = cp2.game
-				where cp2.competition = %(competition)s
-					and cp2.user = ranking.user
-					and cp2.not_played = 0
-					and cg2.validated = 1
-			), 0) as total_good_difference,
-			coalesce((
-				select sum(cp2.good_trend)
-				from `tabCompetition Pick` cp2
-				inner join `tabCompetition Game` cg2 on cg2.name = cp2.game
-				where cp2.competition = %(competition)s
-					and cp2.user = ranking.user
-					and cp2.not_played = 0
-					and cg2.validated = 1
-			), 0) as total_good_trend
+			coalesce(stats.total_exact_result, 0) as total_exact_result,
+			coalesce(stats.total_good_difference, 0) as total_good_difference,
+			coalesce(stats.total_good_trend, 0) as total_good_trend
 		from `tabCompetition Ranking` ranking
 		inner join `tabUser` user on user.name = ranking.user
 		left join `tabFNSI Site` site on site.name = user.location
 		left join `tabCompetition Pick` pick on pick.game = ranking.game and pick.user = ranking.user
+		left join (
+			select
+				cp2.user,
+				sum(cp2.exact_result) as total_exact_result,
+				sum(cp2.good_difference) as total_good_difference,
+				sum(cp2.good_trend) as total_good_trend
+			from `tabCompetition Pick` cp2
+			inner join `tabCompetition Game` cg2 on cg2.name = cp2.game
+			where cp2.competition = %(competition)s
+				and cp2.not_played = 0
+				and cg2.validated = 1
+			group by cp2.user
+		) stats on stats.user = ranking.user
 		{department_join}
 		where ranking.competition = %(competition)s
 			and ranking.game = %(game)s
@@ -244,11 +278,18 @@ def get_rankings(competition, selected_game, filter_mode, current_user_site, cur
 		as_dict=True,
 	)
 
+
+def prepare_ranking_rows(rows, favorite_members, only_favorites=False):
+	prepared_rows = []
 	for row in rows:
+		row = frappe._dict(row.copy())
+		if only_favorites and row.user not in favorite_members:
+			continue
 		row.is_favorite = row.user in favorite_members
 		row.total_points_cumulated_display = format_number(row.total_points_cumulated, decimals=3)
 		row.move = get_ranking_move(row.prior_ranking, row.ranking)
-	return rows
+		prepared_rows.append(row)
+	return prepared_rows
 
 
 def get_open_game_players(competition, selected_game, filter_mode, current_user_site, current_department, favorite_members=None, only_favorites=False, list_filters=None):
@@ -342,3 +383,33 @@ def get_query_base(selected_game, list_filters=None):
 		if list_filters.department:
 			params.append("list_department=" + quote(list_filters.department, safe=""))
 	return "&".join(params)
+
+
+def get_rankings_cache_version():
+	return frappe.cache().get_value(RANKINGS_CACHE_VERSION_KEY) or 0
+
+
+def get_rankings_cache_key(*parts):
+	key_parts = [str(get_rankings_cache_version()), *[str(part or "") for part in parts]]
+	key_hash = hashlib.sha1(json.dumps(key_parts, sort_keys=True, default=str).encode()).hexdigest()
+	return f"football_sni:rankings:{key_hash}"
+
+
+def get_validated_rankings_cache_key(competition, selected_game, filter_mode, current_user_site, current_department, list_filters=None):
+	department_name = current_department.name if current_department else ""
+	list_filters = list_filters or frappe._dict()
+	return get_rankings_cache_key(
+		"rows",
+		competition,
+		selected_game.name,
+		filter_mode,
+		current_user_site if filter_mode == FILTER_SITE else "",
+		department_name if filter_mode == FILTER_DEPARTMENT else "",
+		list_filters.get("country") if filter_mode == FILTER_GENERAL else "",
+		list_filters.get("city") if filter_mode == FILTER_GENERAL else "",
+		list_filters.get("department") if filter_mode == FILTER_GENERAL else "",
+	)
+
+
+def clear_rankings_cache():
+	frappe.cache().set_value(RANKINGS_CACHE_VERSION_KEY, frappe.utils.now_datetime().isoformat())
