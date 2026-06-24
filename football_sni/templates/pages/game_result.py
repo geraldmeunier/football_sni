@@ -2,7 +2,7 @@ from urllib.parse import quote
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 from football_sni.website import add_user_settings_context, get_current_user_location, require_user_location
 
@@ -216,7 +216,7 @@ def get_current_departments(competition, user=None):
 
 	return frappe.db.sql(
 		'''
-		select department.name, department.team
+		select department.name, department.team, department.start_from, department.end_by
 		from `tabFNSI User Department` user_department
 		inner join `tabFNSI Department` department on department.name = user_department.department
 		where user_department.user = %(user)s
@@ -236,6 +236,15 @@ def get_current_department(competition, departments=None):
 		if department.name == selected_department:
 			return department
 	return departments[0] if departments else None
+
+
+def is_department_ranking_game(department, game):
+	if not department or not game:
+		return False
+	game_id = cint(game.get("game_id"))
+	start_from = cint(department.get("start_from")) or 1
+	end_by = cint(department.get("end_by")) or 1000
+	return start_from <= game_id <= end_by
 
 
 def get_list_filters(result_game=None, filter_mode=FILTER_GENERAL):
@@ -331,6 +340,8 @@ def get_favorite_members(competition, user):
 
 def get_result_picks(result_game, filter_mode, current_user_site, current_department, favorite_members, only_favorites, list_filters=None, sort_by=None, sort_order=None):
 	if not result_game:
+		return []
+	if filter_mode == FILTER_DEPARTMENT and not is_department_ranking_game(current_department, result_game):
 		return []
 
 	favorite_members = favorite_members or set()

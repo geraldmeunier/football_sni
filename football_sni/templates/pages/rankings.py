@@ -14,6 +14,7 @@ from football_sni.templates.pages.game_result import (
 	get_current_department,
 	get_current_departments,
 	get_favorite_members,
+	is_department_ranking_game,
 	get_list_filter_options as get_result_list_filter_options,
 	get_list_filters,
 )
@@ -166,6 +167,8 @@ def apply_general_list_filters(conditions, params, list_filters, user_reference=
 def get_rankings(competition, selected_game, filter_mode, current_user_site, current_department, favorite_members=None, only_favorites=False, list_filters=None):
 	if not competition or not selected_game:
 		return []
+	if filter_mode == FILTER_DEPARTMENT and not is_department_ranking_game(current_department, selected_game):
+		return []
 
 	if not selected_game.validated:
 		return get_open_game_players(
@@ -214,6 +217,7 @@ def get_validated_ranking_rows(competition, selected_game, filter_mode, current_
 	}
 	department_join = ''
 	points_expression = f"pick.`{get_competition_pick_field(cumulative_field)}`"
+	stats_conditions = []
 
 	if filter_mode == FILTER_SITE:
 		if not current_user_site:
@@ -234,6 +238,11 @@ def get_validated_ranking_rows(competition, selected_game, filter_mode, current_
 		points_expression = "department_ranking.total_points_cumulated"
 		conditions = ["department_ranking.ranking > 0"]
 		params["department"] = current_department.name
+		params["department_start_from"] = current_department.start_from or 1
+		params["department_end_by"] = current_department.end_by or 1000
+		stats_conditions.append(
+			"cast(cg2.game_id as unsigned) between %(department_start_from)s and %(department_end_by)s"
+		)
 
 	if filter_mode == FILTER_GENERAL and list_filters:
 		apply_general_list_filters(conditions, params, list_filters)
@@ -266,6 +275,7 @@ def get_validated_ranking_rows(competition, selected_game, filter_mode, current_
 			where cp2.competition = %(competition)s
 				and cp2.not_played = 0
 				and cg2.validated = 1
+				{"".join(f" and {condition}" for condition in stats_conditions)}
 			group by cp2.user
 		) stats on stats.user = ranking.user
 		{department_join}

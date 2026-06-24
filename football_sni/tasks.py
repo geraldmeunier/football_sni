@@ -25,6 +25,14 @@ CATEGORY_COUNTRY = "Country"
 CATEGORY_SITE = "Site"
 
 
+def get_department_game_range_condition(department_alias="department", game_alias="game"):
+	return f"""
+		cast({game_alias}.game_id as unsigned) between
+			coalesce(nullif({department_alias}.start_from, 0), 1)
+			and coalesce(nullif({department_alias}.end_by, 0), 1000)
+	"""
+
+
 def all():
 	create_new_subscription_picks()
 
@@ -291,10 +299,16 @@ def update_game_department_factors(game):
 	)
 	frappe.db.delete("Competition Department Ranking", {"game": game.name})
 
-	departments = frappe.get_all(
-		"FNSI Department",
-		filters={"competition": game.competition},
-		pluck="name",
+	departments = frappe.db.sql_list(
+		f"""
+		select department.name
+		from `tabFNSI Department` department
+		inner join `tabCompetition Game` game on game.name = %(game)s
+		where department.competition = %(competition)s
+			and {get_department_game_range_condition()}
+		order by department.name
+		""",
+		{"competition": game.competition, "game": game.name},
 	)
 	for department in departments:
 		department_filter = """
@@ -434,7 +448,7 @@ def get_game_category_point_rows(game):
 
 def get_game_department_category_point_rows(game):
 	return frappe.db.sql(
-		"""
+		f"""
 		select
 			%(category_type)s as category_type,
 			user_department.department as category,
@@ -448,9 +462,11 @@ def get_game_department_category_point_rows(game):
 		inner join `tabFNSI Department` department
 			on department.name = user_department.department
 			and department.competition = pick.competition
+		inner join `tabCompetition Game` game on game.name = pick.game
 		where pick.game = %(game)s
 			and pick.competition = %(competition)s
 			and pick.not_played = 0
+			and {get_department_game_range_condition()}
 		group by user_department.department, department.team, department.name
 		order by category_label asc, user_department.department asc
 		""",
@@ -665,8 +681,12 @@ def update_game_cumulated_points_for_scope(game, cumulative_field, factor_field)
 
 def update_game_department_cumulated_points(game):
 	frappe.db.sql(
-		"""
+		f"""
 		update `tabCompetition Department Ranking` current_ranking
+		inner join `tabFNSI Department` current_department
+			on current_department.name = current_ranking.department
+		inner join `tabCompetition Game` current_game
+			on current_game.name = current_ranking.game
 		set current_ranking.total_points_cumulated = (
 			select coalesce(sum(
 				coalesce(cast(pick.points as decimal(18,6)), 0)
@@ -678,10 +698,13 @@ def update_game_department_cumulated_points(game):
 				on pick.game = department_ranking.game
 				and pick.user = department_ranking.user
 			inner join `tabCompetition Game` pick_game on pick_game.name = pick.game
+			inner join `tabFNSI Department` department
+				on department.name = department_ranking.department
 			where department_ranking.competition = %(competition)s
 				and department_ranking.department = current_ranking.department
 				and department_ranking.user = current_ranking.user
 				and pick.not_played = 0
+				and {get_department_game_range_condition('department', 'pick_game')}
 				and (
 					pick.game = %(game)s
 					or (
@@ -694,6 +717,7 @@ def update_game_department_cumulated_points(game):
 				)
 		)
 		where current_ranking.game = %(game)s
+			and {get_department_game_range_condition('current_department', 'current_game')}
 		""",
 		{
 			"competition": game.competition,
@@ -727,14 +751,33 @@ def get_prior_rankings(game):
 
 
 def get_prior_department_rankings(game):
-	previous_game = get_previous_ranking_game(game)
-	if not previous_game:
+	if not game.start_time:
 		return {}
 
-	rows = frappe.get_all(
-		"Competition Department Ranking",
-		filters={"competition": game.competition, "game": previous_game},
-		fields=["department", "user", "ranking"],
+	rows = frappe.db.sql(
+		f"""
+		select ranking.department, ranking.user, ranking.ranking
+		from `tabCompetition Department Ranking` ranking
+		inner join `tabCompetition Game` ranking_game on ranking_game.name = ranking.game
+		inner join `tabFNSI Department` department on department.name = ranking.department
+		where ranking.competition = %(competition)s
+			and ranking.ranking > 0
+			and {get_department_game_range_condition('department', 'ranking_game')}
+			and ranking.game = (
+				select prior_ranking.game
+				from `tabCompetition Department Ranking` prior_ranking
+				inner join `tabCompetition Game` prior_game on prior_game.name = prior_ranking.game
+				where prior_ranking.competition = ranking.competition
+					and prior_ranking.department = ranking.department
+					and prior_game.validated = 1
+					and prior_game.start_time < %(start_time)s
+					and {get_department_game_range_condition('department', 'prior_game')}
+				order by prior_game.start_time desc, prior_game.name desc
+				limit 1
+			)
+		""",
+		{"competition": game.competition, "start_time": game.start_time},
+		as_dict=True,
 	)
 	return {(row.department, row.user): cint(row.ranking) for row in rows}
 
@@ -844,10 +887,16 @@ def get_site_rankings(game):
 
 def get_department_rankings(game):
 	rankings = {}
-	departments = frappe.get_all(
-		"FNSI Department",
-		filters={"competition": game.competition},
-		pluck="name",
+	departments = frappe.db.sql_list(
+		f"""
+		select department.name
+		from `tabFNSI Department` department
+		inner join `tabCompetition Game` ranking_game on ranking_game.name = %(game)s
+		where department.competition = %(competition)s
+			and {get_department_game_range_condition('department', 'ranking_game')}
+		order by department.name
+		""",
+		{"competition": game.competition, "game": game.name},
 	)
 	for department in departments:
 		for user, ranking in get_rankings_by_query(
@@ -887,6 +936,14 @@ def get_category_rankings(game):
 
 
 def update_department_ranking_rows(game, ranking_maps, prior_rankings):
+	frappe.db.sql(
+		"""
+		update `tabCompetition Department Ranking`
+		set prior_ranking = 0, ranking = 0
+		where game = %(game)s
+		""",
+		{"game": game.name},
+	)
 	for (department, user), ranking in ranking_maps.items():
 		frappe.db.set_value(
 			"Competition Department Ranking",

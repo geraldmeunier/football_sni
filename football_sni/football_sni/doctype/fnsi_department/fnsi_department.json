@@ -7,7 +7,9 @@
  "field_order": [
   "competition",
   "team",
-  "department_owner"
+  "department_owner",
+  "start_from",
+  "end_by"
  ],
  "fields": [
   {
@@ -26,15 +28,28 @@
    "fieldtype": "Link",
    "label": "Owner",
    "options": "User"
+  },
+  {
+   "default": "1",
+   "fieldname": "start_from",
+   "fieldtype": "Int",
+   "label": "Start From"
+  },
+  {
+   "default": "1000",
+   "fieldname": "end_by",
+   "fieldtype": "Int",
+   "label": "End By"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-31 14:32:35.366453",
+ "modified": "2026-06-24 08:28:27.002922",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "FNSI Department",
+ "naming_rule": "By script",
  "owner": "Administrator",
  "permissions": [
   {
@@ -54,7 +69,5 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": [],
- "allow_import": 0,
- "naming_rule": "By script"
+ "states": []
 }
