@@ -86,7 +86,7 @@ def get_owned_department(competition=None, user=None):
 	return frappe.db.get_value(
 		'FNSI Department',
 		filters,
-		['name', 'competition', 'team', 'department_owner'],
+		['name', 'competition', 'team', 'department_owner', 'all_players'],
 		as_dict=True,
 	)
 
@@ -101,6 +101,7 @@ def get_departments(competition):
 			department.name,
 			department.team,
 			department.department_owner,
+			department.all_players,
 			coalesce(nullif(user.full_name, ''), user.name) as department_owner_full_name
 		from `tabFNSI Department` department
 		left join `tabUser` user
@@ -150,7 +151,7 @@ def validate_open_department(department):
 	department_doc = frappe.db.get_value(
 		'FNSI Department',
 		department,
-		['name', 'competition', 'department_owner'],
+		['name', 'competition', 'department_owner', 'all_players'],
 		as_dict=True,
 	)
 	if not department_doc:
@@ -228,6 +229,8 @@ def delete_owned_department(department):
 def join_department(department):
 	require_user_location('/my_local_team')
 	department_doc = validate_open_department(department)
+	if department_doc.all_players:
+		frappe.throw(_('All players are automatically members of this local team.'))
 
 	if frappe.db.exists('FNSI User Department', {'department': department, 'user': frappe.session.user}):
 		frappe.throw(_('You already have a request or membership for this local team.'))
@@ -260,6 +263,8 @@ def join_department(department):
 def leave_department(department):
 	require_user_location('/my_local_team')
 	department_doc = validate_open_department(department)
+	if department_doc.all_players:
+		frappe.throw(_('Membership in this local team is automatic and cannot be left.'))
 	if department_doc.department_owner == frappe.session.user:
 		frappe.throw(_('Use Delete to remove a local team you own.'))
 
@@ -289,11 +294,13 @@ def get_owned_membership(membership):
 	department_doc = frappe.db.get_value(
 		'FNSI Department',
 		membership_doc.department,
-		['name', 'team', 'department_owner'],
+		['name', 'team', 'department_owner', 'all_players'],
 		as_dict=True,
 	)
 	if not department_doc or department_doc.department_owner != frappe.session.user:
 		frappe.throw(_('You can only manage members of your own local team.'))
+	if department_doc.all_players:
+		frappe.throw(_('Members of an All Players team are managed automatically.'))
 
 	return membership_doc, department_doc
 

@@ -12,3 +12,4 @@ football_sni.patches.backfill_competition_category_rankings
 football_sni.patches.add_user_rgpd_consent
 football_sni.patches.update_pick_email_templates_image_src
 football_sni.patches.update_pick_reminder_next_3_days_template
+football_sni.patches.sync_all_players_departments

@@ -9,7 +9,8 @@
   "team",
   "department_owner",
   "start_from",
-  "end_by"
+  "end_by",
+  "all_players"
  ],
  "fields": [
   {
@@ -40,12 +41,18 @@
    "fieldname": "end_by",
    "fieldtype": "Int",
    "label": "End By"
+  },
+  {
+   "default": "0",
+   "fieldname": "all_players",
+   "fieldtype": "Check",
+   "label": "All Players"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-24 08:28:27.002922",
+ "modified": "2026-06-24 09:23:57.031429",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "FNSI Department",

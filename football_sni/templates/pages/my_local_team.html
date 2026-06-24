@@ -59,7 +59,7 @@
 			</div>
 		</section>
 
-		{% if owned_department %}
+		{% if owned_department and not owned_department.all_players %}
 		<section class="fsni-section">
 			<div class="fsni-section-head">
 				<h2>{{ _("Join Requests") }}</h2>
@@ -148,7 +148,9 @@
 							<td class="fsni-strong">{{ department.team or department.name }}</td>
 							<td>{{ department.department_owner_full_name or department.department_owner or "" }}</td>
 							<td class="fsni-local-action">
-								{% if owned_department and department.name == owned_department.name %}
+								{% if department.all_players %}
+								<button class="btn btn-secondary" type="button" disabled>{{ _("All Players") }}</button>
+								{% elif owned_department and department.name == owned_department.name %}
 								<button class="btn btn-secondary" type="button" disabled>{{ _("Owner") }}</button>
 								{% elif department.name in current_departments %}
 								<button class="btn btn-secondary fsni-local-team-action" type="button" data-method="football_sni.templates.pages.my_local_team.leave_department">{{ _("Leave") }}</button>
