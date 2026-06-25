@@ -1104,34 +1104,10 @@ def create_new_subscription_picks():
 	)
 
 	for subscription in subscriptions:
-		games = frappe.get_all(
-			"Competition Game",
-			filters={"competition": subscription.competition, "open": 1},
-			pluck="name",
+		result = create_missing_picks_for_open_games(
+			competition=subscription.competition,
+			user=subscription.user,
 		)
-
-		created_picks = 0
-		for game in games:
-			if frappe.db.exists(
-				"Competition Pick",
-				{
-					"competition": subscription.competition,
-					"user": subscription.user,
-					"game": game,
-				},
-			):
-				continue
-
-			frappe.get_doc(
-				{
-					"doctype": "Competition Pick",
-					"competition": subscription.competition,
-					"user": subscription.user,
-					"game": game,
-					"open": 1,
-				}
-			).insert(ignore_permissions=True)
-			created_picks += 1
 
 		frappe.db.set_value(
 			"Competition Subscription",
@@ -1141,8 +1117,64 @@ def create_new_subscription_picks():
 			update_modified=False,
 		)
 
-		if created_picks:
+		if result["created_picks"]:
 			frappe.enqueue(alert_new_picks_to_input, user=subscription.user)
+
+
+def create_missing_picks_for_open_games(competition=None, game=None, user=None):
+	game_filters = {"open": 1}
+	if competition:
+		game_filters["competition"] = competition
+	if game:
+		game_filters["name"] = game
+
+	games = frappe.get_all(
+		"Competition Game",
+		filters=game_filters,
+		fields=["name", "competition"],
+	)
+
+	created_picks = 0
+	for competition_game in games:
+		subscription_filters = {
+			"competition": competition_game.competition,
+			"stop_subscription": 0,
+		}
+		if user:
+			subscription_filters["user"] = user
+
+		subscriptions = frappe.get_all(
+			"Competition Subscription",
+			filters=subscription_filters,
+			pluck="user",
+		)
+
+		for subscription_user in subscriptions:
+			if frappe.db.exists(
+				"Competition Pick",
+				{
+					"competition": competition_game.competition,
+					"user": subscription_user,
+					"game": competition_game.name,
+				},
+			):
+				continue
+
+			frappe.get_doc(
+				{
+					"doctype": "Competition Pick",
+					"competition": competition_game.competition,
+					"user": subscription_user,
+					"game": competition_game.name,
+					"open": 1,
+				}
+			).insert(ignore_permissions=True)
+			created_picks += 1
+
+	return {
+		"games": len(games),
+		"created_picks": created_picks,
+	}
 
 
 def get_website_app_name():
@@ -1150,6 +1182,7 @@ def get_website_app_name():
 
 
 def send_daily_pick_reminders():
+	create_missing_picks_for_open_games()
 	for user in get_users_with_incomplete_open_picks():
 		frappe.enqueue(send_pick_reminder_to_input, user=user)
 

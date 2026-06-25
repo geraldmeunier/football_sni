@@ -117,8 +117,7 @@
    "fieldname": "open",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Open",
-   "read_only": 1
+   "label": "Open"
   },
   {
    "default": "0",
@@ -148,7 +147,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-12 09:14:36.341694",
+ "modified": "2026-06-25 09:18:46.829028",
  "modified_by": "Administrator",
  "module": "Football SNI",
  "name": "Competition Game",
