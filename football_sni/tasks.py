@@ -588,7 +588,7 @@ def get_ranking_game(game):
 	game_doc = frappe.db.get_value(
 		"Competition Game",
 		game_name,
-		["name", "competition", "start_time"],
+		["name", "game_id", "competition", "start_time"],
 		as_dict=True,
 	)
 	return game_doc
@@ -628,10 +628,7 @@ def update_game_category_cumulated_points(game):
 					category_ranking.game = %(game)s
 					or (
 						ranking_game.validated = 1
-						and (
-							ranking_game.start_time < %(start_time)s
-							or %(start_time)s is null
-						)
+						and cast(ranking_game.game_id as unsigned) < %(game_id)s
 					)
 				)
 		)
@@ -640,7 +637,7 @@ def update_game_category_cumulated_points(game):
 		{
 			"competition": game.competition,
 			"game": game.name,
-			"start_time": game.start_time,
+			"game_id": cint(game.game_id),
 		},
 	)
 
@@ -664,10 +661,7 @@ def update_game_cumulated_points_for_scope(game, cumulative_field, factor_field)
 					pick.game = %(game)s
 					or (
 						pick_game.validated = 1
-						and (
-							pick_game.start_time < %(start_time)s
-							or %(start_time)s is null
-						)
+						and cast(pick_game.game_id as unsigned) < %(game_id)s
 					)
 				)
 		)
@@ -676,7 +670,7 @@ def update_game_cumulated_points_for_scope(game, cumulative_field, factor_field)
 		{
 			"competition": game.competition,
 			"game": game.name,
-			"start_time": game.start_time,
+			"game_id": cint(game.game_id),
 		},
 	)
 
@@ -711,10 +705,7 @@ def update_game_department_cumulated_points(game):
 					pick.game = %(game)s
 					or (
 						pick_game.validated = 1
-						and (
-							pick_game.start_time < %(start_time)s
-							or %(start_time)s is null
-						)
+						and cast(pick_game.game_id as unsigned) < %(game_id)s
 					)
 				)
 		)
@@ -724,7 +715,7 @@ def update_game_department_cumulated_points(game):
 		{
 			"competition": game.competition,
 			"game": game.name,
-			"start_time": game.start_time,
+			"game_id": cint(game.game_id),
 		},
 	)
 
@@ -753,7 +744,7 @@ def get_prior_rankings(game):
 
 
 def get_prior_department_rankings(game):
-	if not game.start_time:
+	if not cint(game.game_id):
 		return {}
 
 	rows = frappe.db.sql(
@@ -772,13 +763,13 @@ def get_prior_department_rankings(game):
 				where prior_ranking.competition = ranking.competition
 					and prior_ranking.department = ranking.department
 					and prior_game.validated = 1
-					and prior_game.start_time < %(start_time)s
+					and cast(prior_game.game_id as unsigned) < %(game_id)s
 					and {get_department_game_range_condition('department', 'prior_game')}
-				order by prior_game.start_time desc, prior_game.name desc
+				order by cast(prior_game.game_id as unsigned) desc, prior_game.name desc
 				limit 1
 			)
 		""",
-		{"competition": game.competition, "start_time": game.start_time},
+		{"competition": game.competition, "game_id": cint(game.game_id)},
 		as_dict=True,
 	)
 	return {(row.department, row.user): cint(row.ranking) for row in rows}
@@ -798,7 +789,7 @@ def get_prior_category_rankings(game):
 
 
 def get_previous_ranking_game(game):
-	if not game.start_time:
+	if not cint(game.game_id):
 		return None
 
 	rows = frappe.db.sql(
@@ -807,16 +798,16 @@ def get_previous_ranking_game(game):
 		from `tabCompetition Game` game
 		where game.competition = %(competition)s
 			and game.validated = 1
-			and game.start_time < %(start_time)s
+			and cast(game.game_id as unsigned) < %(game_id)s
 			and exists (
 				select 1
 				from `tabCompetition Ranking` ranking
 				where ranking.game = game.name
 			)
-		order by game.start_time desc, game.name desc
+		order by cast(game.game_id as unsigned) desc, game.name desc
 		limit 1
 		""",
-		{"competition": game.competition, "start_time": game.start_time},
+		{"competition": game.competition, "game_id": cint(game.game_id)},
 		as_dict=True,
 	)
 	return rows[0].name if rows else None
@@ -1026,7 +1017,7 @@ def recalc_all_rankings():
 		inner join `tabCompetition` competition on competition.name = game.competition
 		where game.validated = 1
 			and competition.open = 1
-		order by game.start_time asc, cast(game.game_id as unsigned) asc, game.name asc
+		order by game.competition, cast(game.game_id as unsigned), game.name
 		""",
 		as_dict=True,
 	)
@@ -1091,7 +1082,7 @@ def get_recalculable_competition_games(competition=None):
 			game.score_updated
 		from `tabCompetition Game` game
 		where {' and '.join(conditions)}
-		order by game.competition asc, game.start_time asc, cast(game.game_id as unsigned) asc, game.name asc
+		order by game.competition, cast(game.game_id as unsigned), game.name
 		""",
 		params,
 		as_dict=True,
