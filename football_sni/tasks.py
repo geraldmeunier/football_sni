@@ -34,8 +34,8 @@ def get_department_game_range_condition(department_alias="department", game_alia
 
 
 def all():
-	create_new_subscription_picks()
-
+    create_new_subscription_picks()
+    create_missing_picks_for_open_games()
 
 def close_competition_games_before_start():
 	cutoff = add_to_date(now_datetime(), hours=1)
