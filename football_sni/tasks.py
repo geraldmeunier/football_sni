@@ -73,16 +73,18 @@ def validate_score_updated_competition_games():
 	if not games:
 		return {"validated": 0, "pending_scores": 0}
 
-	pending_games = [game for game in games if is_score_pending(game)]
-	if pending_games:
-		return {"validated": 0, "pending_scores": len(pending_games)}
-
 	validated = 0
+	pending_scores = 0
 	for game in games:
+		if is_score_pending(game):
+			pending_scores += 1
+			break
+
 		validate_competition_game(game)
+		frappe.db.commit()
 		validated += 1
 
-	return {"validated": validated, "pending_scores": 0}
+	return {"validated": validated, "pending_scores": pending_scores}
 
 
 def validate_yesterday_competition_games(is_retry=False):
@@ -105,7 +107,7 @@ def get_unvalidated_score_updated_competition_games():
 		inner join `tabCompetition` c on c.name = cg.competition
 		where cg.validated = 0
 			and cg.score_updated = 1
-		order by cg.start_time, cg.name
+		order by cast(cg.game_id as unsigned), cg.game_id, cg.start_time, cg.name
 		""",
 		as_dict=True,
 	)
