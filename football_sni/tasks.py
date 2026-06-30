@@ -1,6 +1,7 @@
 # Copyright (c) 2026, Gerald Meunier and contributors
 # For license information, please see license.txt
 
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import frappe
@@ -38,15 +39,29 @@ def all():
     create_missing_picks_for_open_games()
 
 def close_competition_games_before_start():
-	cutoff = add_to_date(now_datetime(), hours=1)
-	games = frappe.get_all(
-		"Competition Game",
-		filters={"open": 1, "start_time": ("<=", cutoff)},
-		pluck="name",
+	cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
+	games = frappe.db.sql(
+		"""
+		select cg.name, cg.start_time, c.time_zone
+		from `tabCompetition Game` cg
+		inner join `tabCompetition` c on c.name = cg.competition
+		where cg.open = 1
+		""",
+		as_dict=True,
 	)
 
-	for game in games:
-		frappe.db.set_value("Competition Game", game, {"open": 0, "do_not_show": 0})
+	due_games = [
+		game
+		for game in games
+		if is_game_due_to_close(
+			game.start_time,
+			game.time_zone,
+			cutoff,
+		)
+	]
+
+	for game in due_games:
+		frappe.db.set_value("Competition Game", game.name, {"open": 0, "do_not_show": 0})
 		frappe.db.sql(
 			"""
 			update `tabCompetition Pick`
@@ -61,11 +76,17 @@ def close_competition_games_before_start():
 					or pick_b = 'null'
 				)
 			""",
-			{"game": game},
+			{"game": game.name},
 		)
-		frappe.db.set_value("Competition Pick", {"game": game}, "open", 0)
+		frappe.db.set_value("Competition Pick", {"game": game.name}, "open", 0)
 
-	return len(games)
+	return len(due_games)
+
+
+def is_game_due_to_close(start_time, competition_time_zone, cutoff):
+	competition_time_zone = get_competition_time_zone(competition_time_zone)
+	start_time = get_datetime(start_time).replace(tzinfo=ZoneInfo(competition_time_zone))
+	return start_time.astimezone(timezone.utc) <= cutoff
 
 
 def validate_score_updated_competition_games():
